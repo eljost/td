@@ -28,7 +28,12 @@ Normalized spectrum:
 Unnormalized spectrum: Same as above, but with --nnorm flag.
 
 	./td.py [fn] --spectrum [from in nm] [to in nm] --nnorm > [outfn]
+	
+When used with the argument e2f the molecular extinction coefficients on the ordinate will be converted to a oscillator strength scale.
 
-To investigate excited state optimizations it may be useful to split the output in chunks, where chunks should equal the number of calculated roots:
+	./td.py [fn] --spectrum [from in nm] [to in nm] --e2f --nnorm > [outfn]
+
+To investigate excited state optimizations it many be useful to split the output in chunks, where chunks should equal the number of calculated roots:
 
 	./td.py [fn] --chunks [roots]
+
