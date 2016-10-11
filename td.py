@@ -228,7 +228,7 @@ def print_impulse(f, l):
 
 
 def make_spectrum(excited_states, start_l, end_l, normalized,
-                  highlight_impulses=None):
+                  highlight_impulses=None, e2f=False):
     # According to:
     # http://www.gaussian.com/g_whitepap/tn_uvvisplot.htm
     # wave lengths and oscillator strengths
@@ -238,6 +238,8 @@ def make_spectrum(excited_states, start_l, end_l, normalized,
     for l in x:
         spectrum.append(np.sum([gauss_uv_band(l, f, l_i) for f, l_i in fli]))
     spectrum = np.array(spectrum)
+    if e2f:
+        spectrum /= 40490.05867167
     if normalized:
         spectrum = spectrum / spectrum.max()
     # Output spectrum
@@ -318,6 +320,10 @@ if __name__ == "__main__":
     parser.add_argument("--spectrum", dest="spectrum", type=float, nargs=2,
                         help="Calculate the UV spectrum from the TD "
                         "calculation (FWHM = 0.4 eV).")
+    parser.add_argument("--e2f", dest="e2f", action="store_true",
+                        help="Used with spectrum. Converts the molecular "
+                        "extinctions coefficients on the ordinate to "
+                        "oscillator strengths.")
     parser.add_argument("--hi", dest="highlight_impulses", type=int,
                         nargs="+", help="List of excitations. Their "
                         "oscillator strength bars will be printed separatly.")
@@ -365,7 +371,7 @@ if __name__ == "__main__":
         # Starting and ending wavelength of the spectrum to be calculated
         start_l, end_l = args.spectrum
         make_spectrum(excited_states, start_l, end_l, args.normalized,
-                      args.highlight_impulses)
+                      args.highlight_impulses, args.e2f)
         sys.exit()
 
     if args.by_id:

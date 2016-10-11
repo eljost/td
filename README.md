@@ -32,4 +32,3 @@ Unnormalized spectrum: Same as above, but with --nnorm flag.
 To investigate excited state optimizations it may be useful to split the output in chunks, where chunks should equal the number of calculated roots:
 
 	./td.py [fn] --chunks [roots]
-	
