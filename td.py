@@ -207,7 +207,8 @@ def get_excited_states(file_name, thresh):
 def gaussian_logs_completer(prefix, **kwargs):
     print(prefix)
     print(kwargs)
-    return [path for path in os.listdir(".") if path.endswith(".out")]
+    return [path for path in os.listdir(".") if path.endswith(".out") or
+                                                path.endswith(".log")]
 
 def gauss_uv_band(l, f, l_i):
     return (1.3062974e8 * f / (1e7 / 3099.6)
@@ -285,7 +286,7 @@ if __name__ == "__main__":
     parser.add_argument("--range", metavar="start_end", nargs="+", type=float,
             help="Show only excited states accessible in this wavelength range \
                 (e.g. 400 450).")
-    parser.add_argument("-sf", action="store_true",
+    parser.add_argument("--sf", action="store_true",
             help="Sort by oscillator strength instead of wavelength.")
     parser.add_argument("--start-mos", dest="start_mos", type=str, nargs="+",
             help="Show only transitions from this MO.")
