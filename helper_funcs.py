@@ -12,3 +12,7 @@ def fformat(fs):
 def numformat(fs, places=2):
     fmt_str = "\\num{{{:.{places}f}}}"
     return [fmt_str.format(f, places=places) for f in fs]
+
+def chunks(lst, n):
+    for i in range(0, len(lst), n):
+        yield lst[i:i+n]

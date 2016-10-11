@@ -6,9 +6,7 @@
 import argparse
 import csv
 import itertools
-from math import exp
 import os
-import os.path
 import re
 import sys
 
@@ -16,22 +14,23 @@ import argcomplete
 import numpy as np
 from mytabulate import tabulate
 
-from helper_funcs import eVformat, fformat, numformat
+from helper_funcs import fformat, numformat, chunks
 
 # Regex
 # Excitation energies and oscillator strengths
 # Groups: id, spin symm, spat symm, dE, wavelength, osc. strength, S**2
-EXC_LINE = "Excited State\s+(\d+):\s+([\w\.]+)-([\?\w'\"]+)\s+([0-9\.-]+) eV\s+" \
-            "([0-9\.-]+) nm\s+f=([0-9\.]+)\s+<S\*\*2>=([0-9\.]+)"
+EXC_LINE = "Excited State\s+(\d+):\s+([\w\.]+)-([\?\w'\"]+)\s+([0-9\.-]+) eV" \
+           "\s+([0-9\.-]+) nm\s+f=([0-9\.]+)\s+<S\*\*2>=([0-9\.]+)"
 # ExcitedStates between MOs and corresponding CI-coefficients
 # Groups: initial MO, final MO, ci coeffcient
 TRS_LINE = r"([\dAB]+)\s*(->|<-)\s*([\dAB]+)\s*\s+([0-9\.-]+)"
 
 CONV_DICT = {
-        "s" : str,
-        "i" : int,
-        "f" : float,
+        "s": str,
+        "i": int,
+        "f": float,
 }
+
 
 class ExcitedState:
     def __init__(self, id, spin, spat, dE, l, f, s2):
@@ -64,8 +63,8 @@ class ExcitedState:
     def has_mo_transition(self, start_mo, final_mo):
         return bool(
             [mo_exc for mo_exc in self.mo_transitions
-            if (start_mo == mo_exc.start_mo) and
-            (final_mo == mo_exc.final_mo)]
+             if (start_mo == mo_exc.start_mo) and
+                (final_mo == mo_exc.final_mo)]
         )
 
     def is_singlet(self):
@@ -87,9 +86,9 @@ class ExcitedState:
             final_mo = bt.start_mo
             start_mo = bt.final_mo
             # Find corresponding transition from final_mo -> start_mo
-            trans_to_correct = [t for t in self.mo_transitions 
+            trans_to_correct = [t for t in self.mo_transitions
                                 if (t.start_mo == final_mo and
-                                t.final_mo == start_mo)][0]
+                                    t.final_mo == start_mo)][0]
             # Correct contribution of trans_to_correct
             trans_to_correct.contrib -= bt.contrib
 
@@ -123,9 +122,9 @@ class ExcitedState:
     def __str__(self):
         print("#{0} {1} eV f={2}").format(self.id, self.dE, self.f)
 
+
 class MOTransition:
-    def __init__(self,
-        start_mo, to_or_from, final_mo, ci_coeff):
+    def __init__(self, start_mo, to_or_from, final_mo, ci_coeff):
         self.start_mo = start_mo
         self.to_or_from = to_or_from
         self.final_mo = final_mo
@@ -145,13 +144,17 @@ class MOTransition:
     def __str__(self):
         return self.outstr()
 
+
 def conv(to_convert, fmt_str):
     return [CONV_DICT[t](item) for item, t in zip(to_convert, fmt_str)]
 
+
 def print_table(excited_states):
     as_list = [exc_state.as_list() for exc_state in excited_states]
-    print(tabulate(as_list, headers=
-        ["#", "2S+1", "Spat.", "dE in eV", "l in nm", "f", "<S**2>"]))
+    print(tabulate(as_list,
+                   headers=["#", "2S+1", "Spat.", "dE in eV", "l in nm",
+                            "f", "<S**2>"]))
+
 
 """
 def print_mos(id, mos, mo_names, is_singlet):
@@ -164,6 +167,7 @@ def print_mos(id, mos, mo_names, is_singlet):
         print("{}\t->\t{}".format(
             start_name, final_name,))
 """
+
 
 def get_excited_states(file_name, thresh):
     handle = open(file_name, "r")
@@ -204,23 +208,27 @@ def get_excited_states(file_name, thresh):
 
     return excited_states, involved_mos
 
+
 def gaussian_logs_completer(prefix, **kwargs):
     print(prefix)
     print(kwargs)
     return [path for path in os.listdir(".") if path.endswith(".out") or
-                                                path.endswith(".log")]
+            path.endswith(".log")]
+
 
 def gauss_uv_band(l, f, l_i):
-    return (1.3062974e8 * f / (1e7 / 3099.6)
-            * np.exp(-((1. / l - 1. / l_i) / (1. / 3099.6))**2))
+    return (1.3062974e8 * f / (1e7 / 3099.6) *
+            np.exp(-((1. / l - 1. / l_i) / (1. / 3099.6))**2))
+
 
 def print_impulse(f, l):
     print(l, 0)
     print(l, f)
     print(l, 0)
 
+
 def make_spectrum(excited_states, start_l, end_l, normalized,
-                    highlight_impulses=None):
+                  highlight_impulses=None):
     # According to:
     # http://www.gaussian.com/g_whitepap/tn_uvvisplot.htm
     # wave lengths and oscillator strengths
@@ -250,7 +258,7 @@ def make_spectrum(excited_states, start_l, end_l, normalized,
 
     """
     Used for printing also the gauss bands of the
-    n-highest transitions 
+    n-highest transitions
     # Sort by f
     fli_sorted = sorted(fli, key=lambda tpl: -tpl[0])
     highest_fs = fli_sorted[:15]
@@ -274,54 +282,61 @@ def make_spectrum(excited_states, start_l, end_l, normalized,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-            "Displays output from Gaussian-td-calculation," \
+            "Displays output from Gaussian-td-calculation,"
             " sorted by oscillator strength f."
     )
     parser.add_argument("file_name", metavar="fn",
-            help="File to parse.").completer = gaussian_logs_completer
+                        help="File to parse.").completer = gaussian_logs_completer
     parser.add_argument("--show", metavar="n", type=int,
-            help="Show only the first n matching excitations.")
+                        help="Show only the first n matching excitations.")
     parser.add_argument("--only-first", metavar="only_first", type=int,
-            help="Only consider first n excited states.")
+                        help="Only consider first n excited states.")
     parser.add_argument("--range", metavar="start_end", nargs="+", type=float,
-            help="Show only excited states accessible in this wavelength range \
-                (e.g. 400 450).")
+                        help="Show only excited states accessible in this "
+                             "wavelength range (e.g. 400 450).")
     parser.add_argument("--sf", action="store_true",
-            help="Sort by oscillator strength instead of wavelength.")
+                        help="Sort by oscillator strength.")
     parser.add_argument("--start-mos", dest="start_mos", type=str, nargs="+",
-            help="Show only transitions from this MO.")
+                        help="Show only transitions from this MO.")
     parser.add_argument("--final-mos", dest="final_mos", type=str, nargs="+",
-            help="Show only transitions to this MO.")
-    parser.add_argument("--start-final-mos", dest="start_final_mos", type=str,
-            nargs="+", help="(Number of) MO pair(s). Only transitions" \
-            "from [start mo] to [final mo] are shown.")
+                        help="Show only transitions to this MO.")
+    parser.add_argument("--start-final-mos", dest="start_final_mos",
+                        type=str, nargs="+", help="(Number of) MO pair(s). "
+                        "Only transitions from [start mo] to [final mo] "
+                        "are shown.")
     parser.add_argument("--raw", action="store_true",
-            help="Just print the data, without the table.")
+                        help="Just print the data, without the table.")
     parser.add_argument("--by-id", dest="by_id", type=int,
-            help="Display excited state with specific id.")
+                        help="Display excited state with specific id.")
     parser.add_argument("--csv",
-            help="Read csv file containing verbose MO-names.")
+                        help="Read csv file containing verbose MO-names.")
     parser.add_argument("--summary", action="store_true",
-            help="Print summary to stdout.")
+                        help="Print summary to stdout.")
     parser.add_argument("--ci-coeff", dest="ci_coeff", type=float,
-            default=0.2, help="Only consider ci coefficients not less than.")
+                        default=0.2, help="Only consider ci coefficients "
+                        "not less than.")
     parser.add_argument("--spectrum", dest="spectrum", type=float, nargs=2,
-            help="Calculate the UV spectrum from the TD calculation " \
-            "(FWHM = 0.4 eV).")
-    parser.add_argument("--hi", dest="highlight_impulses", type=int, 
-            nargs="+", help="List of excitations. Their oscillator strength" \
-            " bars will be printed separatly.")
+                        help="Calculate the UV spectrum from the TD "
+                        "calculation (FWHM = 0.4 eV).")
+    parser.add_argument("--hi", dest="highlight_impulses", type=int,
+                        nargs="+", help="List of excitations. Their "
+                        "oscillator strength bars will be printed separatly.")
     parser.add_argument("--nnorm", dest="normalized", action="store_false",
-            help="Don't normalize the calculated spectrum.", default=True)
+                        help="Don't normalize the calculated spectrum.",
+                        default=True)
     parser.add_argument("--irrep", dest="irrep",
-            help="Filter for specific irrep.")
+                        help="Filter for specific irrep.")
     parser.add_argument("--booktabs", dest="booktabs", action="store_true",
-            help="Output table formatted for use with the latex-" \
-                 "package booktabs.")
+                        help="Output table formatted for use with the latex-"
+                        "package booktabs.")
     parser.add_argument("--exc", type=float,
-        help="Excitation wavelength for resonance raman.")
+                        help="Excitation wavelength for resonance raman.")
     parser.add_argument("--rrthresh", type=float, default=1e-2,
-        help="Threshold for RR weight.")
+                        help="Threshold for RR weight.")
+    parser.add_argument("--chunks", type=int, default=0,
+                        help="Split the output in chunks. Useful for "
+                        "investigating excited state optimizations. Don't use "
+                        "with --sf or --raw.")
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
 
@@ -350,7 +365,7 @@ if __name__ == "__main__":
         # Starting and ending wavelength of the spectrum to be calculated
         start_l, end_l = args.spectrum
         make_spectrum(excited_states, start_l, end_l, args.normalized,
-            args.highlight_impulses)
+                      args.highlight_impulses)
         sys.exit()
 
     if args.by_id:
@@ -362,9 +377,11 @@ if __name__ == "__main__":
             print("Excited state with id #{} not found.".format(args.by_id))
         sys.exit()
 
-    #!
-    #! DO FILTERING/SORTING HERE
-    #! 
+    """
+    !
+    ! DO FILTERING/SORTING HERE
+    !
+    """
 
     if args.irrep:
         excited_states = [es for es in excited_states if es.spat == args.irrep]
@@ -373,62 +390,60 @@ if __name__ == "__main__":
         states = set()
         for start_mo in args.start_mos:
             states.update([exc_state for exc_state in excited_states
-                if start_mo in exc_state.get_start_mos()]
-            )
+                           if start_mo in exc_state.get_start_mos()])
         excited_states = states
     if args.final_mos:
         states = set()
         for final_mo in args.final_mos:
             states.update([exc_state for exc_state in excited_states
-                if final_mo in exc_state.get_final_mos()]
-            )
+                           if final_mo in exc_state.get_final_mos()])
         excited_states = states
     if args.start_final_mos:
         sf_mos = args.start_final_mos
         if (len(sf_mos) % 2) != 0:
-            sys.exit("Need an even number of arguments for " \
-                    "--start-final-mos, not an odd number.")
+            sys.exit("Need an even number of arguments for "
+                     "--start-final-mos, not an odd number.")
         states = set()
-        pairs = [(sf_mos[i], sf_mos[i+1]) for i in range(len(sf_mos) / 2)] 
+        pairs = [(sf_mos[i], sf_mos[i+1]) for i in range(len(sf_mos) / 2)]
         for start_mo, final_mo in pairs:
             states.update(
                 [exc_state for exc_state in excited_states if
-                exc_state.has_mo_transition(start_mo, final_mo)]
+                 exc_state.has_mo_transition(start_mo, final_mo)]
             )
         excited_states = states
 
-    # sort by wavelength
-    key_func = lambda exc_state: -exc_state.l
-    # sort by oscillator strength
+    # Sort by oscillator strength
     if args.sf:
-        key_func = lambda exc_state: -exc_state.f
-    excited_states = sorted(excited_states, key=key_func)
-    # only show excitations in specified wavelength-range
+        excited_states = sorted(excited_states,
+                                key=lambda exc_state: -exc_state.f)
+    # Only show excitations in specified wavelength-range
     if args.range:
         # Only lower threshold specified (energy wise)
         if len(args.range) is 1:
             end = args.range[0]
             excited_states = [exc_state for exc_state in excited_states
-                    if (exc_state.l >= end)]
+                              if (exc_state.l >= end)]
         elif len(args.range) is 2:
             start, end = args.range
             excited_states = [exc_state for exc_state in excited_states
-                    if (start <= exc_state.l <= end)]
+                              if (start <= exc_state.l <= end)]
         else:
             raise Exception("Only 1 or 2 arguments allowed for --range!")
 
     excited_states = excited_states[:args.show]
 
-    #!
-    #! DON'T DO FILTERING/SORTING BELOW THIS LINE
-    #!
+    """
+    !
+    ! DON'T DO FILTERING/SORTING BELOW THIS LINE
+    !
+    """
 
     # find lowest orbital from where an excitation originates
     min_mo = min(itertools.chain(*[exc_state.get_start_mos()
-        for exc_state in excited_states]))
+                                   for exc_state in excited_states]))
     # find highest lying orbital where an excitation ends
     max_mo = max(itertools.chain(*[exc_state.get_final_mos()
-        for exc_state in excited_states]))
+                                   for exc_state in excited_states]))
 
     # Convert remaining excitations to a list so it can be printed by
     # the tabulate module
@@ -437,13 +452,14 @@ if __name__ == "__main__":
     if args.exc:
         for es in excited_states:
             es.calc_rr_weight(args.exc)
-    #!
-    #! PRINTING BELOW THIS LINE
-    #!
+    """
+    !
+    ! PRINTING BELOW THIS LINE
+    !
+    """
 
     if args.booktabs:
         nr, mult, sym, eV, nm, f, spin = zip(*as_list)
-        #eV = eVformat(eV)
         eV = numformat(eV)
         f = fformat(f)
         nm = numformat(nm, 1)
@@ -465,14 +481,20 @@ if __name__ == "__main__":
             print("")
     else:
         # Print as pretty table with header information
-        print_table(excited_states)
+        if args.chunks > 0:
+            for i, chunk in enumerate(chunks(excited_states, args.chunks), 1):
+                print("### Chunk {} ###".format(i))
+                print_table(chunk)
+                print()
+        else:
+            print_table(chunk)
 
     if args.exc:
         rr_weights = [(es.id, es.rr_weight) for es in excited_states
                       if es.rr_weight >= args.rrthresh]
         print(tabulate(rr_weights))
 
-    print("Only considering transitions  with" \
-        " CI-coefficients >= {}:".format(args.ci_coeff))
+    print("Only considering transitions  with "
+          "CI-coefficients >= {}:".format(args.ci_coeff))
     print("Lowest excitation from MO {}.".format(min_mo))
     print("Highest excitation to MO {}.".format(max_mo))
