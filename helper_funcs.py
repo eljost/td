@@ -139,7 +139,7 @@ def print_bt_table(output):
     formatted_output = zip(
         range(1, len(symms)+1), symms, EeVs, Enms, fs)
 
-    print tabulate(formatted_output, tablefmt="latex_booktabs")
+    print(tabulate(formatted_output, tablefmt="latex_booktabs"))
 
 if __name__ == "__main__":
     """
@@ -152,5 +152,5 @@ if __name__ == "__main__":
     d((0,0,1))
     """
     g = (1,2,3,4,5,8,13,29,16,15,14,88)
-    print g
-    print find_biggest_gap(g)
+    print(g)
+    print(find_biggest_gap(g))

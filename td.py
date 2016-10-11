@@ -10,7 +10,6 @@ from math import exp
 import os
 import os.path
 import re
-from sets import Set
 import sys
 
 import argcomplete
@@ -57,10 +56,10 @@ class ExcitedState:
         )
 
     def get_start_mos(self):
-        return Set([mo_tr.start_mo for mo_tr in self.mo_transitions])
+        return set([mo_tr.start_mo for mo_tr in self.mo_transitions])
 
     def get_final_mos(self):
-        return Set([mo_tr.final_mo for mo_tr in self.mo_transitions])
+        return set([mo_tr.final_mo for mo_tr in self.mo_transitions])
 
     def has_mo_transition(self, start_mo, final_mo):
         return bool(
@@ -100,9 +99,9 @@ class ExcitedState:
             # 89B <- 90B
             if mo_trans.to_or_from == "<-":
                 continue
-            print mo_trans.outstr()
+            print(mo_trans.outstr())
             if verbose_mos:
-                print "\t\t{0} -> {1}".format(
+                print("\t\t{0} -> {1}").format(
                     verbose_mos[int(mo_trans.start_mo)],
                     verbose_mos[int(mo_trans.final_mo)]
                 )
@@ -122,7 +121,7 @@ class ExcitedState:
         self.rr_weight = self.f * abs(G/(l_in_cm-rr_ex_in_cm-G))
 
     def __str__(self):
-        print "#{0} {1} eV f={2}".format(self.id, self.dE, self.f)
+        print("#{0} {1} eV f={2}").format(self.id, self.dE, self.f)
 
 class MOTransition:
     def __init__(self,
@@ -206,8 +205,8 @@ def get_excited_states(file_name, thresh):
     return excited_states, involved_mos
 
 def gaussian_logs_completer(prefix, **kwargs):
-    print prefix
-    print kwargs
+    print(prefix)
+    print(kwargs)
     return [path for path in os.listdir(".") if path.endswith(".out")]
 
 def gauss_uv_band(l, f, l_i):
@@ -215,9 +214,9 @@ def gauss_uv_band(l, f, l_i):
             * np.exp(-((1. / l - 1. / l_i) / (1. / 3099.6))**2))
 
 def print_impulse(f, l):
-    print l, 0
-    print l, f
-    print l, 0
+    print(l, 0)
+    print(l, f)
+    print(l, 0)
 
 def make_spectrum(excited_states, start_l, end_l, normalized,
                     highlight_impulses=None):
@@ -234,7 +233,7 @@ def make_spectrum(excited_states, start_l, end_l, normalized,
         spectrum = spectrum / spectrum.max()
     # Output spectrum
     for x, y in zip(x, spectrum):
-        print x, y
+        print(x, y)
 
     # Output oscillator strength impulses
     print
@@ -370,14 +369,14 @@ if __name__ == "__main__":
         excited_states = [es for es in excited_states if es.spat == args.irrep]
 
     if args.start_mos:
-        states = Set()
+        states = set()
         for start_mo in args.start_mos:
             states.update([exc_state for exc_state in excited_states
                 if start_mo in exc_state.get_start_mos()]
             )
         excited_states = states
     if args.final_mos:
-        states = Set()
+        states = set()
         for final_mo in args.final_mos:
             states.update([exc_state for exc_state in excited_states
                 if final_mo in exc_state.get_final_mos()]
@@ -388,7 +387,7 @@ if __name__ == "__main__":
         if (len(sf_mos) % 2) != 0:
             sys.exit("Need an even number of arguments for " \
                     "--start-final-mos, not an odd number.")
-        states = Set()
+        states = set()
         pairs = [(sf_mos[i], sf_mos[i+1]) for i in range(len(sf_mos) / 2)] 
         for start_mo, final_mo in pairs:
             states.update(
@@ -448,7 +447,7 @@ if __name__ == "__main__":
         f = fformat(f)
         nm = numformat(nm, 1)
         for_booktabs = zip(nr, sym, eV, nm, f)
-        print tabulate(for_booktabs, tablefmt="latex_booktabs")
+        print(tabulate(for_booktabs, tablefmt="latex_booktabs"))
         sys.exit()
 
     # Dont print the pretty table when raw output is requested
@@ -470,7 +469,7 @@ if __name__ == "__main__":
     if args.exc:
         rr_weights = [(es.id, es.rr_weight) for es in excited_states
                       if es.rr_weight >= args.rrthresh]
-        print tabulate(rr_weights)
+        print(tabulate(rr_weights))
 
     print("Only considering transitions  with" \
         " CI-coefficients >= {}:".format(args.ci_coeff))
