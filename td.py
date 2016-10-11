@@ -20,7 +20,7 @@ from helper_funcs import fformat, numformat, chunks
 # Excitation energies and oscillator strengths
 # Groups: id, spin symm, spat symm, dE, wavelength, osc. strength, S**2
 EXC_LINE = "Excited State\s+(\d+):\s+([\w\.]+)-([\?\w'\"]+)\s+([0-9\.-]+) eV" \
-           "\s+([0-9\.-]+) nm\s+f=([0-9\.]+)\s+<S\*\*2>=([0-9\.]+)"
+           "\s+([0-9\.-]+) nm\s+f=([0-9\.-]+)\s+<S\*\*2>=([0-9\.]+)"
 # ExcitedStates between MOs and corresponding CI-coefficients
 # Groups: initial MO, final MO, ci coeffcient
 TRS_LINE = r"([\dAB]+)\s*(->|<-)\s*([\dAB]+)\s*\s+([0-9\.-]+)"
@@ -487,7 +487,7 @@ if __name__ == "__main__":
                 print_table(chunk)
                 print()
         else:
-            print_table(chunk)
+            print_table(excited_states)
 
     if args.exc:
         rr_weights = [(es.id, es.rr_weight) for es in excited_states
