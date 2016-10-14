@@ -339,6 +339,9 @@ if __name__ == "__main__":
                         help="Excitation wavelength for resonance raman.")
     parser.add_argument("--rrthresh", type=float, default=1e-2,
                         help="Threshold for RR weight.")
+    parser.add_argument("--fthresh", type=float, default=0.0,
+                        help="Only show transitions with oscillator strengths"
+                        " greater than or equal to the supplied threshold.""")
     parser.add_argument("--chunks", type=int, default=0,
                         help="Split the output in chunks. Useful for "
                         "investigating excited state optimizations. Don't use "
@@ -435,6 +438,10 @@ if __name__ == "__main__":
                               if (start <= exc_state.l <= end)]
         else:
             raise Exception("Only 1 or 2 arguments allowed for --range!")
+
+    if args.fthresh:
+        excited_states = [exc_state for exc_state in excited_states
+                          if (exc_state.f >= args.fthresh)]
 
     excited_states = excited_states[:args.show]
 

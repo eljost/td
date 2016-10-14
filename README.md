@@ -37,3 +37,7 @@ To investigate excited state optimizations it many be useful to split the output
 
 	./td.py [fn] --chunks [roots]
 
+Only show transitions with an oscillator strength greater than or equal to a supplied threshold and sort by oscillator strength:
+	
+	./td.py [fn] --fthresh [thresh] --sf
+
