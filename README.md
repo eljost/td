@@ -1,6 +1,6 @@
 # td.py
 
-Parser for **td**-calculations done with **Gaussian 09** or **TURBOMOLE** (only singlet calculations right now).
+Parser for excited state calculations done with **Gaussian 09** (*td* keyword) or **TURBOMOLE** (*escf* module, only singlet calculations right now).
 
 By default the script expects **Gaussian 09** logs, but when the supplied filename is *escf.out* it will be parsed as **TURBOMOLE**-log.
 
