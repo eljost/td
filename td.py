@@ -12,7 +12,8 @@ import sys
 
 import argcomplete
 import numpy as np
-from mytabulate import tabulate
+#from mytabulate import tabulate
+from tabulate import tabulate
 
 from helper_funcs import fformat, numformat, chunks
 
@@ -68,7 +69,7 @@ class ExcitedState:
         )
 
     def is_singlet(self):
-        return self.spin == "Singlet"
+        return self.spin == "Singlet".lower()
 
     def calculate_contributions(self):
         for mo_trans in self.mo_transitions:
@@ -151,9 +152,11 @@ def conv(to_convert, fmt_str):
 
 def print_table(excited_states):
     as_list = [exc_state.as_list() for exc_state in excited_states]
+    floatfmt = ["", "", "", ".2f", ".1f", ".5f", ""]
     print(tabulate(as_list,
                    headers=["#", "2S+1", "Spat.", "dE in eV", "l in nm",
-                            "f", "<S**2>"]))
+                            "f", "<S**2>"],
+                   floatfmt=floatfmt))
 
 
 """
@@ -169,7 +172,7 @@ def print_mos(id, mos, mo_names, is_singlet):
 """
 
 
-def get_excited_states(file_name, thresh):
+def get_excited_states(file_name):
     handle = open(file_name, "r")
     excited_states = list()
     involved_mos = dict()
@@ -201,12 +204,57 @@ def get_excited_states(file_name, thresh):
             matched_exc_state = True
 
     handle.close()
-    for exc_state in excited_states:
-        exc_state.calculate_contributions()
-        exc_state.correct_backexcitations()
-        exc_state.suppress_low_ci_coeffs(thresh)
 
     return excited_states, involved_mos
+
+
+def parse_escf(fn):
+    with open("escf.out") as handle:
+        text = handle.read()
+
+    sym = "(\d+)\s+(singlet|doublet|triplet|quartet|quintet|sextet)" \
+          "\s+(\w+)\s+excitation"
+    sym_re = re.compile(sym)
+    syms = sym_re.findall(text)
+    syms = [(int(id_), spin, spat) for id_, spin, spat in syms]
+
+    exc_energy = "Excitation energy:\s*([\d\.E\+-]+)"
+    exc_energy_re = re.compile(exc_energy)
+    ees = exc_energy_re.findall(text)
+    ees = [float(ee) for ee in ees]
+
+    osc_strength = "mixed representation:\s*([\d\.E\+-]+)"
+    osc_strength_re = re.compile(osc_strength)
+    oscs = osc_strength_re.findall(text)
+    oscs = [float(osc) for osc in oscs]
+
+    dom_contrib = "2\*100(.*?)Change of electron number"
+    dom_contrib_re = re.compile(dom_contrib, flags=re.MULTILINE | re.DOTALL)
+    dcs = dom_contrib_re.findall(text)
+    dc_str = "(\d+) (a|b)\s+([-\d\.]+)\s*(\d+) (a|b)\s+([-\d\.]+)\s*([\d\.]+)"
+    dc_re = re.compile(dc_str)
+    dcs_parsed = [dc_re.findall(exc) for exc in dcs]
+
+    excited_states = list()
+    dom_contribs = list()
+    for sym, ee, osc, dc in zip(syms, ees, oscs, dcs_parsed):
+        id_, spin, spat = sym
+        dE = ee * 27.211386
+        l = 45.56335 / ee
+
+        exc_state = ExcitedState(id_, spin, spat, dE, l, osc, "???")
+        excited_states.append(exc_state)
+        # def add_mo_transition(self, start_mo, to_or_from, final_mo, ci_coeff)
+        for d in dc:
+            start_mo = d[0]
+            final_mo = d[3]
+            to_or_from = "->"
+            # TURBOMOLE outputs already (ci^2)*100
+            ci_coeff = (float(d[6]) / 100.)**0.5
+            exc_state.add_mo_transition(start_mo, to_or_from, final_mo,
+                                        ci_coeff)
+
+    return excited_states, dom_contribs
 
 
 def gaussian_logs_completer(prefix, **kwargs):
@@ -365,7 +413,14 @@ if __name__ == "__main__":
                 verbose_mos[int(id)] = mo_type
 
     # Extract excitations
-    excited_states, mos = get_excited_states(args.file_name, args.ci_coeff)
+    if args.file_name == "escf.out":
+        excited_states, mos = parse_escf(args.file_name)
+    else:
+        excited_states, mos = get_excited_states(args.file_name)
+    for exc_state in excited_states:
+        exc_state.calculate_contributions()
+        exc_state.correct_backexcitations()
+        exc_state.suppress_low_ci_coeffs(args.ci_coeff)
 
     if args.only_first:
         excited_states = excited_states[:args.only_first]
