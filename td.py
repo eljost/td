@@ -50,9 +50,10 @@ class ExcitedState:
         return [self.id, self.spin, self.spat, self.dE,
                 self.l, self.f, self.s2]
 
-    def add_mo_transition(self, start_mo, to_or_from, final_mo, ci_coeff):
+    def add_mo_transition(self, start_mo, to_or_from, final_mo, ci_coeff,
+                         contrib=None):
         self.mo_transitions.append(MOTransition(
-            start_mo, to_or_from, final_mo, ci_coeff)
+            start_mo, to_or_from, final_mo, ci_coeff, contrib)
         )
 
     def get_start_mos(self):
@@ -73,6 +74,8 @@ class ExcitedState:
 
     def calculate_contributions(self):
         for mo_trans in self.mo_transitions:
+            if mo_trans.contrib is not None:
+                continue
             contrib = mo_trans.ci_coeff**2
             if self.is_singlet():
                 contrib *= 2
@@ -109,8 +112,15 @@ class ExcitedState:
     def suppress_low_ci_coeffs(self, thresh):
         # Check if excitation lies below ci coefficient threshold
         # if it does don't add this excitation
-        to_del = [t for t in self.mo_transitions
-                  if abs(t.ci_coeff) <= thresh]
+        contrib_thresh = thresh**2 * 2
+        to_del = list()
+        for mo_trans in self.mo_transitions:
+            if mo_trans.contrib:
+                if mo_trans.contrib <= contrib_thresh:
+                    to_del.append(mo_trans)
+                continue
+            if abs(mo_trans.ci_coeff) <= thresh:
+                to_del.append(mo_trans)
         for td in to_del:
             self.mo_transitions.remove(td)
 
@@ -125,13 +135,12 @@ class ExcitedState:
 
 
 class MOTransition:
-    def __init__(self, start_mo, to_or_from, final_mo, ci_coeff):
+    def __init__(self, start_mo, to_or_from, final_mo, ci_coeff, contrib):
         self.start_mo = start_mo
         self.to_or_from = to_or_from
         self.final_mo = final_mo
         self.ci_coeff = ci_coeff
-
-        self.contrib = None
+        self.contrib = contrib
 
     def outstr(self):
         return "\t{0:5s} {1} {2:5s}\t{3: 5.3f}\t{4:3.1%}".format(
@@ -249,10 +258,9 @@ def parse_escf(fn):
             start_mo = d[0]
             final_mo = d[3]
             to_or_from = "->"
-            # TURBOMOLE outputs already (ci^2)*100
-            ci_coeff = (float(d[6]) / 100.)**0.5
+            contrib = float(d[6]) / 100
             exc_state.add_mo_transition(start_mo, to_or_from, final_mo,
-                                        ci_coeff)
+                                        ci_coeff=-0, contrib=contrib)
 
     return excited_states, dom_contribs
 
