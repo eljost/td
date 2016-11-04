@@ -536,9 +536,9 @@ if __name__ == "__main__":
 
     if args.booktabs:
         nr, mult, sym, eV, nm, f, spin = zip(*as_list)
-        eV = numformat(eV)
-        f = fformat(f)
-        nm = numformat(nm, 1)
+        eV = ["{:.2f}".format(_) for _ in eV]
+        f = ["{:.4f}".format(_) for _ in f]
+        nm = ["{:.1f}".format(_) for _ in nm]
         for_booktabs = zip(nr, sym, eV, nm, f)
         print(tabulate(for_booktabs, tablefmt="latex_booktabs"))
         sys.exit()
