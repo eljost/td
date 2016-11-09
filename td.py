@@ -222,7 +222,7 @@ def parse_escf(fn):
         text = handle.read()
 
     sym = "(\d+)\s+(singlet|doublet|triplet|quartet|quintet|sextet)" \
-          "\s+(\w+)\s+excitation"
+          "\s+([\w'\"]+)\s+excitation"
     sym_re = re.compile(sym)
     syms = sym_re.findall(text)
     syms = [(int(id_), spin, spat) for id_, spin, spat in syms]
@@ -240,7 +240,7 @@ def parse_escf(fn):
     dom_contrib = "2\*100(.*?)Change of electron number"
     dom_contrib_re = re.compile(dom_contrib, flags=re.MULTILINE | re.DOTALL)
     dcs = dom_contrib_re.findall(text)
-    dc_str = "(\d+) (a|b)\s+([-\d\.]+)\s*(\d+) (a|b)\s+([-\d\.]+)\s*([\d\.]+)"
+    dc_str = "(\d+) ([\w'\"]+)\s+([-\d\.]+)\s*(\d+) ([\w'\"]+)\s+([-\d\.]+)\s*([\d\.]+)"
     dc_re = re.compile(dc_str)
     dcs_parsed = [dc_re.findall(exc) for exc in dcs]
 
@@ -354,6 +354,8 @@ if __name__ == "__main__":
                              "wavelength range (e.g. 400 450).")
     parser.add_argument("--sf", action="store_true",
                         help="Sort by oscillator strength.")
+    parser.add_argument("--se", action="store_true",
+                        help="Sort by energy.")
     parser.add_argument("--start-mos", dest="start_mos", type=str, nargs="+",
                         help="Show only transitions from this MO.")
     parser.add_argument("--final-mos", dest="final_mos", type=str, nargs="+",
@@ -488,6 +490,9 @@ if __name__ == "__main__":
     if args.sf:
         excited_states = sorted(excited_states,
                                 key=lambda exc_state: -exc_state.f)
+    if args.se:
+        excited_states = sorted(excited_states,
+                                key=lambda exc_state: exc_state.dE)
     # Only show excitations in specified wavelength-range
     if args.range:
         # Only lower threshold specified (energy wise)
