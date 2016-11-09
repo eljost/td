@@ -13,6 +13,7 @@ if python_version_tuple()[0] < "3":
     from itertools import izip_longest
     from functools import partial
     _none_type = type(None)
+    _bool_type = bool
     _int_type = int
     _long_type = long
     _float_type = float
@@ -26,11 +27,13 @@ else:
     from itertools import zip_longest as izip_longest
     from functools import reduce, partial
     _none_type = type(None)
+    _bool_type = bool
     _int_type = int
     _long_type = int
     _float_type = float
     _text_type = str
     _binary_type = bytes
+    basestring = str
 
     import io
     def _is_file(f):
@@ -44,7 +47,6 @@ except ImportError:
 
 __all__ = ["tabulate", "tabulate_formats", "simple_separated_format"]
 __version__ = "0.7.6-dev"
-__license__ = "MIT"
 
 
 # minimum extra space in headers
@@ -177,8 +179,8 @@ def _latex_line_begin_tabular(colwidths, colaligns, booktabs=False):
                       "\\toprule" if booktabs else "\hline"])
 
 LATEX_ESCAPE_RULES = {r"&": r"\&", r"%": r"\%", r"$": r"\$", r"#": r"\#",
-                      r"_": r"\_", r"^": r"\^{}", 
-                      r"~": r"\textasciitilde{}", 
+                      r"_": r"\_", r"^": r"\^{}", r"{": r"\{", r"}": r"\}",
+                      r"~": r"\textasciitilde{}", "\\": r"\textbackslash{}",
                       r"<": r"\ensuremath{<}", r">": r"\ensuremath{>}"}
 
 
@@ -188,6 +190,24 @@ def _latex_row(cell_values, colwidths, colaligns):
     escaped_values = ["".join(map(escape_char, cell)) for cell in cell_values]
     rowfmt = DataRow("", "&", "\\\\")
     return _build_simple_row(escaped_values, rowfmt)
+
+
+def _rst_escape_first_column(rows, headers):
+    def escape_empty(val):
+        if isinstance(val, (_text_type, _binary_type)) and val.strip() is "":
+            return ".."
+        else:
+            return val
+    new_headers = list(headers)
+    new_rows = []
+    if headers:
+        new_headers[0] = escape_empty(headers[0])
+    for row in rows:
+        new_row = list(row)
+        if new_row:
+            new_row[0] = escape_empty(row[0])
+        new_rows.append(new_row)
+    return new_rows, new_headers
 
 
 _table_formats = {"simple":
@@ -320,8 +340,8 @@ _table_formats = {"simple":
 tabulate_formats = list(sorted(_table_formats.keys()))
 
 
-_invisible_codes = re.compile(r"\x1b\[\d*m|\x1b\[\d*\;\d*\;\d*m")  # ANSI color codes
-_invisible_codes_bytes = re.compile(b"\x1b\[\d*m|\x1b\[\d*\;\d*\;\d*m")  # ANSI color codes
+_invisible_codes = re.compile(r"\x1b\[\d+[;\d]*m|\x1b\[\d*\;\d*\;\d*m")  # ANSI color codes
+_invisible_codes_bytes = re.compile(b"\x1b\[\d+[;\d]*m|\x1b\[\d*\;\d*\;\d*m")  # ANSI color codes
 
 
 def simple_separated_format(separator):
@@ -371,7 +391,22 @@ def _isint(string, inttype=int):
             _isconvertible(inttype, string)
 
 
-def _type(string, has_invisible=True):
+def _isbool(string):
+    """
+    >>> _isbool(True)
+    True
+    >>> _isbool("False")
+    True
+    >>> _isbool(1)
+    False
+    """
+    return type(string) is _bool_type or\
+           (isinstance(string, (_binary_type, _text_type))\
+            and\
+            string in ("True", "False"))
+
+
+def _type(string, has_invisible=True, numparse=True):
     """The least generic type (type(None), int, float, str, unicode).
 
     >>> _type(None) is type(None)
@@ -395,11 +430,13 @@ def _type(string, has_invisible=True):
         return _none_type
     elif hasattr(string, "isoformat"):  # datetime.datetime, date, and time
         return _text_type
-    elif _isint(string):
+    elif _isbool(string):
+        return _bool_type
+    elif _isint(string) and numparse:
         return int
-    elif _isint(string, _long_type):
+    elif _isint(string, _long_type) and numparse:
         return int
-    elif _isnumber(string):
+    elif _isnumber(string) and numparse:
         return float
     elif isinstance(string, _binary_type):
         return _binary_type
@@ -547,15 +584,17 @@ def _align_column(strings, alignment, minwidth=0, has_invisible=True):
 
 
 def _more_generic(type1, type2):
-    types = { _none_type: 0, int: 1, float: 2, _binary_type: 3, _text_type: 4 }
-    invtypes = { 4: _text_type, 3: _binary_type, 2: float, 1: int, 0: _none_type }
-    moregeneric = max(types.get(type1, 4), types.get(type2, 4))
+    types = { _none_type: 0, _bool_type: 1, int: 2, float: 3, _binary_type: 4, _text_type: 5 }
+    invtypes = { 5: _text_type, 4: _binary_type, 3: float, 2: int, 1: _bool_type, 0: _none_type }
+    moregeneric = max(types.get(type1, 5), types.get(type2, 5))
     return invtypes[moregeneric]
 
 
-def _column_type(strings, has_invisible=True):
+def _column_type(strings, has_invisible=True, numparse=True):
     """The least generic type all column values are convertible to.
 
+    >>> _column_type([True, False]) is _bool_type
+    True
     >>> _column_type(["1", "2"]) is _int_type
     True
     >>> _column_type(["1", "2.3"]) is _float_type
@@ -573,8 +612,8 @@ def _column_type(strings, has_invisible=True):
     True
 
     """
-    types = [_type(s, has_invisible) for s in strings ]
-    return reduce(_more_generic, types, int)
+    types = [_type(s, has_invisible, numparse) for s in strings ]
+    return reduce(_more_generic, types, _bool_type)
 
 
 def _format(val, valtype, floatfmt, missingval="", has_invisible=True):
@@ -691,7 +730,12 @@ def _normalize_tabular_data(tabular_data, headers, showindex="default"):
             rows = list(izip_longest(*tabular_data.values()))  # columns have to be transposed
         elif hasattr(tabular_data, "index"):
             # values is a property, has .index => it's likely a pandas.DataFrame (pandas 0.11.0)
-            keys = tabular_data.keys()
+            keys = list(tabular_data)
+            if tabular_data.index.name is not None:
+                if isinstance(tabular_data.index.name, list):
+                    keys[:0] = tabular_data.index.name
+                else:
+                    keys[:0] = [tabular_data.index.name]
             vals = tabular_data.values  # values matrix doesn't need to be transposed
             # for DataFrames add an index per default
             index = list(tabular_data.index)
@@ -705,7 +749,10 @@ def _normalize_tabular_data(tabular_data, headers, showindex="default"):
     else:  # it's a usual an iterable of iterables, or a NumPy array
         rows = list(tabular_data)
 
-        if (headers == "keys" and
+        if (headers == "keys" and not rows):
+            # an empty table (issue #81)
+            headers = []
+        elif (headers == "keys" and
             hasattr(tabular_data, "dtype") and
             getattr(tabular_data.dtype, "names")):
             # numpy record array
@@ -747,6 +794,14 @@ def _normalize_tabular_data(tabular_data, headers, showindex="default"):
             elif headers:
                 raise ValueError('headers for a list of dicts is not a dict or a keyword')
             rows = [[row.get(k) for k in keys] for row in rows]
+
+        elif (headers == "keys"
+              and hasattr(tabular_data, "description")
+              and hasattr(tabular_data, "fetchone")
+              and hasattr(tabular_data, "rowcount")):
+            # Python Database API cursor object (PEP 0249)
+            # print tabulate(cursor, headers='keys')
+            headers = [column[0] for column in tabular_data.description]
 
         elif headers == "keys" and len(rows) > 0:
             # keys are column indices
@@ -790,7 +845,7 @@ def _normalize_tabular_data(tabular_data, headers, showindex="default"):
 
 def tabulate(tabular_data, headers=(), tablefmt="simple",
              floatfmt="g", numalign="decimal", stralign="left",
-             missingval="", showindex="default"):
+             missingval="", showindex="default", disable_numparse=False):
     """Format a fixed width table for pretty printing.
 
     >>> print(tabulate([[1, 2.34], [-56, "8.999"], ["2", "10001"]]))
@@ -857,9 +912,13 @@ def tabulate(tabular_data, headers=(), tablefmt="simple",
     -------------
 
     `floatfmt` is a format specification used for columns which
-    contain numeric data with a decimal point.
+    contain numeric data with a decimal point. This can also be
+    a list or tuple of format strings per column, in which case
+    it must be exactly the same length as the number of columns.
 
-    `None` values are replaced with a `missingval` string:
+    `None` values are replaced with a `missingval` string (like 
+    `floatfmt`, this can also be a list of values for different
+    columns):
 
     >>> print(tabulate([["spam", 1, None],
     ...                 ["eggs", 42, 3.14],
@@ -1034,11 +1093,30 @@ def tabulate(tabular_data, headers=(), tablefmt="simple",
      eggs & 451      \\\\
     \\bottomrule
     \end{tabular}
+
+    Number parsing
+    --------------
+    By default, anything which can be parsed as a number is a number.
+    This ensures numbers represented as strings are aligned properly.
+    This can lead to weird results for particular strings such as
+    specific git SHAs e.g. "42992e1" will be parsed into the number
+    429920 and aligned as such.
+
+    To completely disable number parsing (and alignment), use
+    `disable_numparse=True`. For more fine grained control, a list column
+    indices is used to disable number parsing only on those columns
+    e.g. `disable_numparse=[0, 2]` would disable number parsing only on the
+    first and third columns.
     """
     if tabular_data is None:
         tabular_data = []
     list_of_lists, headers = _normalize_tabular_data(
             tabular_data, headers, showindex=showindex)
+
+    # empty values in the first column of RST tables should be escaped (issue #82)
+    # "" should be escaped as "\\ " or ".."
+    if tablefmt == 'rst':
+        list_of_lists, headers = _rst_escape_first_column(list_of_lists, headers)
 
     # optimization: look for ANSI control codes once,
     # enable smart width functions only if a control code is found
@@ -1055,10 +1133,25 @@ def tabulate(tabular_data, headers=(), tablefmt="simple",
         width_fn = len
 
     # format rows and columns, convert numeric values to strings
-    cols = list(zip(*list_of_lists))
-    coltypes = list(map(_column_type, cols))
-    cols = [[_format(v, ct, floatfmt, missingval, has_invisible) for v in c]
-             for c,ct in zip(cols, coltypes)]
+    cols = list(izip_longest(*list_of_lists))
+    numparses = _expand_numparse(disable_numparse, len(cols))
+    coltypes = [_column_type(col, numparse=np) for col, np in
+                zip(cols, numparses)]
+    if isinstance(floatfmt, basestring): #old version
+        float_formats = len(cols) * [floatfmt] # just duplicate the string to use in each column
+    else: # if floatfmt is  list, tuple etc we have one per column
+        float_formats = floatfmt
+        if len(float_formats) != len(cols):
+            raise TypeError("If floatfmt is a list, it must be exactly the same length as the number of columns")
+    if isinstance(missingval, basestring):
+        missing_vals = len(cols) * [missingval] 
+    else:
+        missing_vals = missingval
+        if len(missing_vals) != len(cols):
+            raise TypeError("If missingval is a list, it must be exactly the same length as the number of columns")
+    
+    cols = [[_format(v, ct, fl_fmt, miss_v, has_invisible) for v in c]
+             for c, ct, fl_fmt, miss_v in zip(cols, coltypes, float_formats, missing_vals)]
 
     # align columns
     aligns = [numalign if ct in [int,float] else stralign for ct in coltypes]
@@ -1082,6 +1175,23 @@ def tabulate(tabular_data, headers=(), tablefmt="simple",
         tablefmt = _table_formats.get(tablefmt, _table_formats["simple"])
 
     return _format_table(tablefmt, headers, rows, minwidths, aligns)
+
+
+def _expand_numparse(disable_numparse, column_count):
+    """
+    Return a list of bools of length `column_count` which indicates whether
+    number parsing should be used on each column.
+    If `disable_numparse` is a list of indices, each of those indices are False,
+    and everything else is True.
+    If `disable_numparse` is a bool, then the returned list is all the same.
+    """
+    if isinstance(disable_numparse, Iterable):
+        numparses = [True] * column_count
+        for index in disable_numparse:
+            numparses[index] = False
+        return numparses
+    else:
+        return [not disable_numparse] * column_count
 
 
 def _build_simple_row(padded_cells, rowfmt):
@@ -1154,7 +1264,10 @@ def _format_table(fmt, headers, rows, colwidths, colaligns):
     if fmt.linebelow and "linebelow" not in hidden:
         lines.append(_build_line(padded_widths, colaligns, fmt.linebelow))
 
-    return "\n".join(lines)
+    if headers or rows:
+        return "\n".join(lines)
+    else: # a completely empty table
+        return ""
 
 
 def _main():
