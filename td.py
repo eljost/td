@@ -511,7 +511,7 @@ if __name__ == "__main__":
         excited_states = [exc_state for exc_state in excited_states
                           if (exc_state.f >= args.fthresh)]
 
-    excited_states = excited_states[:args.show]
+    excited_states = list(excited_states)[:args.show]
 
     """
     !
