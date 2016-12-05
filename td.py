@@ -318,8 +318,8 @@ def make_spectrum(excited_states, start_l, end_l, normalized,
         print(x, y)
 
     # Output oscillator strength impulses
-    print
-    print
+    print()
+    print()
     for f, l in fli:
         print_impulse(f, l)
 
