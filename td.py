@@ -51,9 +51,15 @@ class ExcitedState:
                 self.l, self.f, self.s2]
 
     def add_mo_transition(self, start_mo, to_or_from, final_mo, ci_coeff,
-                         contrib=None):
+                          start_spin, final_spin,
+                          contrib=None):
+        if start_spin == "":
+            start_spin = "alpha"
+        if final_spin == "":
+            final_spin = "alpha"
         self.mo_transitions.append(MOTransition(
-            start_mo, to_or_from, final_mo, ci_coeff, contrib)
+            start_mo, to_or_from, final_mo, ci_coeff,
+            contrib, start_spin, final_spin)
         )
 
     def get_start_mos(self):
@@ -135,18 +141,23 @@ class ExcitedState:
 
 
 class MOTransition:
-    def __init__(self, start_mo, to_or_from, final_mo, ci_coeff, contrib):
+    def __init__(self, start_mo, to_or_from, final_mo, ci_coeff,
+                 contrib, start_spin, final_spin):
         self.start_mo = start_mo
+        self.start_spin = start_spin
         self.to_or_from = to_or_from
         self.final_mo = final_mo
+        self.final_spin = final_spin
         self.ci_coeff = ci_coeff
         self.contrib = contrib
 
     def outstr(self):
-        return "\t{0:5s} {1} {2:5s}\t{3: 5.3f}\t{4:3.1%}".format(
+        return "\t{0:>5s}{1} {2} {3:>5s}{4}\t{5: 5.3f}\t{6:3.1%}".format(
             self.start_mo,
+            self.start_spin[0],
             self.to_or_from,
             self.final_mo,
+            self.final_spin[0],
             self.ci_coeff,
             self.contrib
         )
@@ -221,8 +232,10 @@ def parse_escf(fn):
     with open("escf.out") as handle:
         text = handle.read()
 
-    sym = "(\d+)\s+(singlet|doublet|triplet|quartet|quintet|sextet)" \
-          "\s+([\w'\"]+)\s+excitation"
+    # In openshell calculations TURBOMOLE omits the multiplicity in
+    # the string.
+    sym = "(\d+)\s+(singlet|doublet|triplet|quartet|quintet|sextet)?" \
+          "\s*([\w'\"]+)\s+excitation"
     sym_re = re.compile(sym)
     syms = sym_re.findall(text)
     syms = [(int(id_), spin, spat) for id_, spin, spat in syms]
@@ -240,7 +253,9 @@ def parse_escf(fn):
     dom_contrib = "2\*100(.*?)Change of electron number"
     dom_contrib_re = re.compile(dom_contrib, flags=re.MULTILINE | re.DOTALL)
     dcs = dom_contrib_re.findall(text)
-    dc_str = "(\d+) ([\w'\"]+)\s+([-\d\.]+)\s*(\d+) ([\w'\"]+)\s+([-\d\.]+)\s*([\d\.]+)"
+    dc_str = "(\d+) ([\w'\"]+)\s*(beta|alpha)?\s+([-\d\.]+)\s*" \
+             "(\d+) ([\w'\"]+)\s*(beta|alpha)?\s+([-\d\.]+)\s*" \
+             "([\d\.]+)"
     dc_re = re.compile(dc_str)
     dcs_parsed = [dc_re.findall(exc) for exc in dcs]
 
@@ -253,14 +268,14 @@ def parse_escf(fn):
 
         exc_state = ExcitedState(id_, spin, spat, dE, l, osc, "???")
         excited_states.append(exc_state)
-        # def add_mo_transition(self, start_mo, to_or_from, final_mo, ci_coeff)
         for d in dc:
             start_mo = d[0]
-            final_mo = d[3]
+            final_mo = d[4]
             to_or_from = "->"
-            contrib = float(d[6]) / 100
+            contrib = float(d[8]) / 100
             exc_state.add_mo_transition(start_mo, to_or_from, final_mo,
-                                        ci_coeff=-0, contrib=contrib)
+                                        ci_coeff=-0, contrib=contrib,
+                                        start_spin=d[2], final_spin=d[6])
 
     return excited_states, dom_contribs
 
