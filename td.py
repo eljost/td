@@ -6,19 +6,24 @@
 import argparse
 import csv
 import itertools
+import logging
 import os
 import re
 import sys
 
-import argcomplete
 import numpy as np
 from tabulate import tabulate
+# Optional modules
+try:
+    import argcomplete
+except ImportError:
+    pass
 try:
     from docx import Document
 except ImportError:
     pass
 
-from helper_funcs import fformat, numformat, chunks
+from helper_funcs import chunks
 
 # Regex
 # Excitation energies and oscillator strengths
@@ -376,6 +381,10 @@ def make_spectrum(excited_states, start_l, end_l, normalized,
 
 
 def make_docx(excited_states):
+    # Check if docx was imported properly
+    if "docx" not in sys.modules:
+        logging.error("Could't import python-docx-module.")
+        sys.exit()
     header = ("State",
               "λ / nm",
               "E / eV",
@@ -411,8 +420,6 @@ if __name__ == "__main__":
             "Displays output from Gaussian-td-calculation,"
             " sorted by oscillator strength f."
     )
-    parser.add_argument("file_name", metavar="fn",
-                        help="File to parse.").completer = gaussian_logs_completer
     parser.add_argument("--show", metavar="n", type=int,
                         help="Show only the first n matching excitations.")
     parser.add_argument("--only-first", metavar="only_first", type=int,
@@ -473,7 +480,14 @@ if __name__ == "__main__":
     parser.add_argument("--docx", action="store_true",
                         help="Output the parsed data as a table into a "
                         ".docx document.")
-    argcomplete.autocomplete(parser)
+    # Use the argcomplete module for autocompletion if it's available
+    if "argcomplete" in sys.modules:
+        parser.add_argument("file_name", metavar="fn",
+                            help="File to parse.").completer = gaussian_logs_completer
+        argcomplete.autocomplete(parser)
+    else:
+        parser.add_argument("file_name", metavar="fn",
+                            help="File to parse.")
     args = parser.parse_args()
 
     # Try to look for csv file with MO names

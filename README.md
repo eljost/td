@@ -11,8 +11,12 @@ td.py requires:
 
     Python 3.x
     numpy
-    argcomplete
     
+Optional packages are:
+
+	python-docx
+	argcomplete
+	
 The **argcomplete** module (https://pypi.python.org/pypi/argcomplete) has to be configured separately. When using **argcomplete** the script looks for files with *.out* and *.log* extensions.
 
 ## Usage
