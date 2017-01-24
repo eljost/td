@@ -49,9 +49,17 @@ class ExcitedState:
 
         self.mo_transitions = list()
 
-    def as_list(self):
-        return [self.id, self.spin, self.spat, self.dE,
-                self.l, self.f, self.s2]
+    def as_list(self, attrs=None):
+        if not attrs:
+            attrs = ("id",
+                     "spin",
+                     "spat",
+                     "dE",
+                     "l",
+                     "f",
+                     "s2")
+        return [getattr(self, a) for a in attrs]
+
 
     def add_mo_transition(self, start_mo, to_or_from, final_mo, ci_coeff,
                           start_spin, final_spin,
@@ -366,6 +374,38 @@ def make_spectrum(excited_states, start_l, end_l, normalized,
     print tabulate(wargel, headers=headers, tablefmt="plain")
     """
 
+
+def make_docx(excited_states):
+    header = ("State",
+              "λ / nm",
+              "E / eV",
+              "f",
+              "Transition",
+              "Weight / \%")
+    attrs = ("id", "l", "dE", "f")
+
+    # Prepare the document and the table
+    doc = Document()
+    # We need one additional row for the table header
+    table = doc.add_table(rows=len(excited_states)+1,
+                          cols=len(header))
+
+    # Prepare the data to be inserted into the table
+    as_lists = [es.as_list(attrs) for es in excited_states]
+    as_fmt_lists = [(
+        "S{}".format(id),
+        "{:.1f}".format(l),
+        "{:.2f}".format(dE),
+        "{:.4f}".format(f)) for id, l, dE, f in as_lists]
+    # Set header in the first row
+    for item, cell in zip(header, table.rows[0].cells):
+        cell.text = item
+    for i, fmt_list in enumerate(as_fmt_lists, 1):
+        for item, cell in zip(fmt_list, table.rows[i].cells):
+            cell.text = item
+    doc.save("Haha.docx")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
             "Displays output from Gaussian-td-calculation,"
@@ -432,6 +472,9 @@ if __name__ == "__main__":
                         help="Split the output in chunks. Useful for "
                         "investigating excited state optimizations. Don't use "
                         "with --sf or --raw.")
+    parser.add_argument("--docx", action="store_true",
+                        help="Output the parsed data as a table into a "
+                        ".docx document.")
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
 
@@ -582,6 +625,9 @@ if __name__ == "__main__":
         for exc_state in as_list:
             print("\t".join([str(item) for item in exc_state]))
         # Don't print lowest starting MO etc. ...
+        sys.exit()
+    if args.docx:
+        make_docx(excited_states)
         sys.exit()
     elif args.summary:
         for exc_state in excited_states:
