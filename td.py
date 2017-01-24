@@ -52,14 +52,15 @@ class ExcitedState:
 
     def add_mo_transition(self, start_mo, to_or_from, final_mo, ci_coeff,
                           start_spin, final_spin,
-                          contrib=None):
+                          contrib=None,
+                          start_irrep="A", final_irrep="A"):
         if start_spin == "":
             start_spin = "alpha"
         if final_spin == "":
             final_spin = "alpha"
         self.mo_transitions.append(MOTransition(
             start_mo, to_or_from, final_mo, ci_coeff,
-            contrib, start_spin, final_spin)
+            contrib, start_spin, final_spin, start_irrep, final_irrep)
         )
 
     def get_start_mos(self):
@@ -142,7 +143,8 @@ class ExcitedState:
 
 class MOTransition:
     def __init__(self, start_mo, to_or_from, final_mo, ci_coeff,
-                 contrib, start_spin, final_spin):
+                 contrib, start_spin, final_spin,
+                 start_irrep, final_irrep):
         self.start_mo = start_mo
         self.start_spin = start_spin
         self.to_or_from = to_or_from
@@ -150,17 +152,21 @@ class MOTransition:
         self.final_spin = final_spin
         self.ci_coeff = ci_coeff
         self.contrib = contrib
+        self.start_irrep = start_irrep
+        self.final_irrep = final_irrep
 
     def outstr(self):
-        return "\t{0:>5s}{1} {2} {3:>5s}{4}\t{5: 5.3f}\t{6:3.1%}".format(
-            self.start_mo,
-            self.start_spin[0],
-            self.to_or_from,
-            self.final_mo,
-            self.final_spin[0],
-            self.ci_coeff,
-            self.contrib
-        )
+        return "\t{0:>5s}{1} {2} {3} {4:>5s}{5} {6}" \
+               "\t{7: 5.3f}\t{8:3.1%}".format(
+                self.start_mo,
+                self.start_irrep,
+                self.start_spin[0],
+                self.to_or_from,
+                self.final_mo,
+                self.final_irrep,
+                self.final_spin[0],
+                self.ci_coeff,
+                self.contrib)
 
     def __str__(self):
         return self.outstr()
@@ -270,12 +276,16 @@ def parse_escf(fn):
         excited_states.append(exc_state)
         for d in dc:
             start_mo = d[0]
+            start_irrep = d[1]
             final_mo = d[4]
+            final_irrep = d[5]
             to_or_from = "->"
             contrib = float(d[8]) / 100
             exc_state.add_mo_transition(start_mo, to_or_from, final_mo,
                                         ci_coeff=-0, contrib=contrib,
-                                        start_spin=d[2], final_spin=d[6])
+                                        start_spin=d[2], final_spin=d[6],
+                                        start_irrep=start_irrep,
+                                        final_irrep=final_irrep)
 
     return excited_states, dom_contribs
 
@@ -293,9 +303,9 @@ def gauss_uv_band(l, f, l_i):
 
 
 def print_impulse(f, l):
-    print(l, 0)
+    #print(l, 0)
     print(l, f)
-    print(l, 0)
+    #print(l, 0)
 
 
 def make_spectrum(excited_states, start_l, end_l, normalized,
