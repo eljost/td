@@ -63,14 +63,13 @@ class ExcitedState:
                      "s2")
         return [getattr(self, a) for a in attrs]
 
-
     def add_mo_transition(self, start_mo, to_or_from, final_mo, ci_coeff,
-                          start_spin, final_spin,
+                          start_spin=None, final_spin=None,
                           contrib=None,
-                          start_irrep="A", final_irrep="A"):
-        if start_spin == "":
+                          start_irrep="a", final_irrep="a"):
+        if not start_spin:
             start_spin = "alpha"
-        if final_spin == "":
+        if not final_spin:
             final_spin = "alpha"
         self.mo_transitions.append(MOTransition(
             start_mo, to_or_from, final_mo, ci_coeff,
@@ -150,6 +149,32 @@ class ExcitedState:
         rr_ex_in_cm = 10**7 / rr_exc
         G = 1500j
         self.rr_weight = self.f * abs(G/(l_in_cm-rr_ex_in_cm-G))
+
+    def update_irreps(self):
+        """Find out which irreps are important for the MOTransitions."""
+        start_irreps = [mo_trans.start_irrep for mo_trans
+                        in self.mo_transitions]
+        final_irreps = [mo_trans.final_irrep for mo_trans
+                        in self.mo_transitions]
+        self.irreps = set(start_irreps + final_irreps)
+
+        self.mo_trans_per_irrep = dict()
+        for irrep in self.irreps:
+            start_mos = [mot.start_mo for mot in self.mo_transitions
+                         if mot.start_irrep == irrep]
+            final_mos = [mot.final_mo for mot in self.mo_transitions
+                         if mot.final_irrep == irrep]
+            unique_mos = set(start_mos + final_mos)
+            self.mo_trans_per_irrep[irrep] = unique_mos
+
+    """
+    # find lowest orbital from where an excitation originates
+    min_mo = min(itertools.chain(*[exc_state.get_start_mos()
+                                   for exc_state in excited_states]))
+    # find highest lying orbital where an excitation ends
+    max_mo = max(itertools.chain(*[exc_state.get_final_mos()
+                                   for exc_state in excited_states]))
+    """
 
     def __str__(self):
         print("#{0} {1} eV f={2}").format(self.id, self.dE, self.f)
@@ -291,13 +316,16 @@ def parse_escf(fn):
         for d in dc:
             start_mo = d[0]
             start_irrep = d[1]
+            start_spin = d[2]
             final_mo = d[4]
             final_irrep = d[5]
+            final_spin = d[6]
             to_or_from = "->"
             contrib = float(d[8]) / 100
             exc_state.add_mo_transition(start_mo, to_or_from, final_mo,
                                         ci_coeff=-0, contrib=contrib,
-                                        start_spin=d[2], final_spin=d[6],
+                                        start_spin=start_spin,
+                                        final_spin=final_spin,
                                         start_irrep=start_irrep,
                                         final_irrep=final_irrep)
 
@@ -305,8 +333,6 @@ def parse_escf(fn):
 
 
 def gaussian_logs_completer(prefix, **kwargs):
-    print(prefix)
-    print(kwargs)
     return [path for path in os.listdir(".") if path.endswith(".out") or
             path.endswith(".log")]
 
@@ -514,15 +540,18 @@ if __name__ == "__main__":
                 id, mo_type = row
                 verbose_mos[int(id)] = mo_type
 
-    # Extract excitations
+    # Parse outputs
     if args.file_name == "escf.out":
+        # TURBOMOLE
         excited_states, mos = parse_escf(args.file_name)
     else:
+        # Gaussian
         excited_states, mos = get_excited_states(args.file_name)
     for exc_state in excited_states:
         exc_state.calculate_contributions()
         exc_state.correct_backexcitations()
         exc_state.suppress_low_ci_coeffs(args.ci_coeff)
+        exc_state.update_irreps()
 
     if args.only_first:
         excited_states = excited_states[:args.only_first]
@@ -615,12 +644,18 @@ if __name__ == "__main__":
     !
     """
 
-    # find lowest orbital from where an excitation originates
-    min_mo = min(itertools.chain(*[exc_state.get_start_mos()
-                                   for exc_state in excited_states]))
-    # find highest lying orbital where an excitation ends
-    max_mo = max(itertools.chain(*[exc_state.get_final_mos()
-                                   for exc_state in excited_states]))
+    # Find important irreps
+    irreps = set(itertools.chain(*[exc_state.irreps for exc_state in
+                                   excited_states]))
+    min_max_mos = dict()
+    for irrep in irreps:
+        min_max_mos[irrep] = list()
+    for exc_state in excited_states:
+        for irrep in exc_state.irreps:
+            min_max_mos[irrep].extend(exc_state.mo_trans_per_irrep[irrep])
+    for irrep in min_max_mos:
+        mos = set(min_max_mos[irrep])
+        min_max_mos[irrep] = (min(mos), max(mos))
 
     # Convert remaining excitations to a list so it can be printed by
     # the tabulate module
@@ -676,5 +711,8 @@ if __name__ == "__main__":
 
     print("Only considering transitions  with "
           "CI-coefficients >= {}:".format(args.ci_coeff))
-    print("Lowest excitation from MO {}.".format(min_mo))
-    print("Highest excitation to MO {}.".format(max_mo))
+    for irrep in irreps:
+        min_mo, max_mo = min_max_mos[irrep]
+        print("Irrep {}: MOs {} - {}".format(irrep,
+                                             min_mo,
+                                             max_mo))
