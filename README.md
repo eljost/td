@@ -17,7 +17,7 @@ Optional packages are:
 	python-docx
 	argcomplete
 	
-The **argcomplete** module (https://pypi.python.org/pypi/argcomplete) has to be configured separately. When using **argcomplete** the script looks for files with *.out* and *.log* extensions.
+The **argcomplete** module (https://pypi.python.org/pypi/argcomplete) has to be configured separately. When using **argcomplete** *td.py* looks for files with *.out* and *.log* extensions.
 
 ## Usage
 Display the help message with all available commands:
@@ -42,10 +42,19 @@ When used with the argument e2f the molecular extinction coefficients on the ord
 
 ### Filtering
 
-To investigate excited state optimizations it may be useful to split the output in chunks, where chunks should equal the number of calculated roots:
+To investigate excited state optimizations it may be useful to split the output in chunks, where chunks should equal the number of calculated roots at every step of the optimization:
 
 	./td.py [fn] --chunks [roots]
 
 Only show transitions with an oscillator strength greater than or equal to a supplied threshold and sort by oscillator strength:
 	
 	./td.py [fn] --fthresh [thresh] --sf
+
+### Exporting
+Several export-formats are available:
+
+| Format | Argument | Comment |
+| --------- | ------------- | ------------- |
+| booktabs | \-\-booktabs | To be used in .tex-documents |
+| raw | \-\-raw | Export without any formatting |
+| docx | \-\-docx | Export to an .docx-document. Needs python-docx-module |

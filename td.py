@@ -23,8 +23,6 @@ try:
 except ImportError:
     pass
 
-from helper_funcs import chunks
-
 # Regex
 # Excitation energies and oscillator strengths
 # Groups: id, spin symm, spat symm, dE, wavelength, osc. strength, S**2
@@ -380,11 +378,19 @@ def make_spectrum(excited_states, start_l, end_l, normalized,
     """
 
 
+def chunks(lst, n):
+    for i in range(0, len(lst), n):
+        yield lst[i:i+n]
+
+
 def make_docx(excited_states):
-    # Check if docx was imported properly
+    """Export the supplied excited states into a .docx-document."""
+    # Check if docx was imported properly. If not exit.
     if "docx" not in sys.modules:
         logging.error("Could't import python-docx-module.")
         sys.exit()
+
+    # The table header
     header = ("State",
               "λ / nm",
               "E / eV",
@@ -392,6 +398,7 @@ def make_docx(excited_states):
               "Transition",
               "Weight / \%")
     attrs = ("id", "l", "dE", "f")
+    docx_fn = "export.docx"
 
     # Prepare the document and the table
     doc = Document()
@@ -409,10 +416,12 @@ def make_docx(excited_states):
     # Set header in the first row
     for item, cell in zip(header, table.rows[0].cells):
         cell.text = item
+    # Start from the 2nd row (index 1)
     for i, fmt_list in enumerate(as_fmt_lists, 1):
         for item, cell in zip(fmt_list, table.rows[i].cells):
             cell.text = item
-    doc.save("Haha.docx")
+    # Save the document
+    doc.save(docx_fn)
 
 
 if __name__ == "__main__":
