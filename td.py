@@ -422,8 +422,6 @@ if __name__ == "__main__":
                              "wavelength range (e.g. 400 450).")
     parser.add_argument("--sf", action="store_true",
                         help="Sort by oscillator strength.")
-    parser.add_argument("--se", action="store_true",
-                        help="Sort by energy.")
     parser.add_argument("--start-mos", dest="start_mos", type=str, nargs="+",
                         help="Show only transitions from this MO.")
     parser.add_argument("--final-mos", dest="final_mos", type=str, nargs="+",
@@ -557,13 +555,17 @@ if __name__ == "__main__":
             )
         excited_states = states
 
-    # Sort by oscillator strength
+    # Sort by oscillator strength if requested.
+    # Sorting by energy is the default.
     if args.sf:
         excited_states = sorted(excited_states,
                                 key=lambda exc_state: -exc_state.f)
-    if args.se:
+    else:
         excited_states = sorted(excited_states,
                                 key=lambda exc_state: exc_state.dE)
+        # Relabel the states from 1 to len(excited_states)
+        for i, es in enumerate(excited_states, 1):
+            es.id = i
     # Only show excitations in specified wavelength-range
     if args.range:
         # Only lower threshold specified (energy wise)
