@@ -422,9 +422,11 @@ def make_docx(excited_states):
               "E / eV",
               "f",
               "Transition",
-              "Weight / \%")
+              "Weight / %")
     attrs = ("id", "l", "dE", "f")
     docx_fn = "export.docx"
+    trans_fmt = "({} {}) → ({} {})"
+    weight_fmt = "{:.0%}"
 
     # Prepare the document and the table
     doc = Document()
@@ -434,15 +436,34 @@ def make_docx(excited_states):
 
     # Prepare the data to be inserted into the table
     as_lists = [es.as_list(attrs) for es in excited_states]
-    as_fmt_lists = [(
+    as_fmt_lists = [[
         "S{}".format(id),
         "{:.1f}".format(l),
         "{:.2f}".format(dE),
-        "{:.4f}".format(f)) for id, l, dE, f in as_lists]
+        "{:.4f}".format(f)] for id, l, dE, f in as_lists]
     # Set header in the first row
     for item, cell in zip(header, table.rows[0].cells):
         cell.text = item
-    # Start from the 2nd row (index 1)
+
+    # For one excited state there may be several transitions
+    # that contribute. This loop constructs two string, holding
+    # the information about the transitions and the contributing
+    # weights.
+    for i, exc_state in enumerate(excited_states):
+        mo_trans = exc_state.mo_transitions
+        trans_list = [trans_fmt.format(
+                        mot.start_mo,
+                        mot.start_irrep,
+                        mot.final_mo,
+                        mot.final_irrep) for mot in mo_trans]
+        trans_str = "\n".join(trans_list)
+        weight_list = [weight_fmt.format(mot.contrib)
+                       for mot in mo_trans]
+        weight_str = "\n".join(weight_list)
+        as_fmt_lists[i].extend([trans_str, weight_str])
+
+    # Start from the 2nd row (index 1) and fill in all cells
+    # with the parsed data.
     for i, fmt_list in enumerate(as_fmt_lists, 1):
         for item, cell in zip(fmt_list, table.rows[i].cells):
             cell.text = item
