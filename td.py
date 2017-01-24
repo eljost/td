@@ -12,8 +12,11 @@ import sys
 
 import argcomplete
 import numpy as np
-#from mytabulate import tabulate
 from tabulate import tabulate
+try:
+    from docx import Document
+except ImportError:
+    pass
 
 from helper_funcs import fformat, numformat, chunks
 
