@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Johannes Steinmetzer
 # PYTHON_ARGCOMPLETE_OK
@@ -274,7 +274,7 @@ def get_excited_states(file_name):
 
 
 def parse_escf(fn):
-    with open("escf.out") as handle:
+    with open(fn) as handle:
         text = handle.read()
 
     # In openshell calculations TURBOMOLE omits the multiplicity in
@@ -408,14 +408,7 @@ def chunks(lst, n):
     for i in range(0, len(lst), n):
         yield lst[i:i+n]
 
-
-def make_docx(excited_states):
-    """Export the supplied excited states into a .docx-document."""
-    # Check if docx was imported properly. If not exit.
-    if "docx" not in sys.modules:
-        logging.error("Could't import python-docx-module.")
-        sys.exit()
-
+def as_table(excited_states):
     # The table header
     header = ("State",
               "λ / nm",
@@ -424,15 +417,8 @@ def make_docx(excited_states):
               "Transition",
               "Weight / %")
     attrs = ("id", "l", "dE", "f")
-    docx_fn = "export.docx"
     trans_fmt = "({} {}) → ({} {})"
     weight_fmt = "{:.0%}"
-
-    # Prepare the document and the table
-    doc = Document()
-    # We need one additional row for the table header
-    table = doc.add_table(rows=len(excited_states)+1,
-                          cols=len(header))
 
     # Prepare the data to be inserted into the table
     as_lists = [es.as_list(attrs) for es in excited_states]
@@ -441,9 +427,6 @@ def make_docx(excited_states):
         "{:.1f}".format(l),
         "{:.2f}".format(dE),
         "{:.4f}".format(f)] for id, l, dE, f in as_lists]
-    # Set header in the first row
-    for item, cell in zip(header, table.rows[0].cells):
-        cell.text = item
 
     # For one excited state there may be several transitions
     # that contribute. This loop constructs two string, holding
@@ -462,6 +445,28 @@ def make_docx(excited_states):
         weight_str = "\n".join(weight_list)
         as_fmt_lists[i].extend([trans_str, weight_str])
 
+    return as_fmt_lists, header
+
+def make_docx(excited_states):
+    """Export the supplied excited states into a .docx-document."""
+    # Check if docx was imported properly. If not exit.
+    if "docx" not in sys.modules:
+        logging.error("Could't import python-docx-module.")
+        sys.exit()
+
+    docx_fn = "export.docx"
+    as_fmt_lists, header = as_table(excited_states)
+
+    # Prepare the document and the table
+    doc = Document()
+    # We need one additional row for the table header
+    table = doc.add_table(rows=len(excited_states)+1,
+                          cols=len(header))
+
+    # Set header in the first row
+    for item, cell in zip(header, table.rows[0].cells):
+        cell.text = item
+
     # Start from the 2nd row (index 1) and fill in all cells
     # with the parsed data.
     for i, fmt_list in enumerate(as_fmt_lists, 1):
@@ -469,6 +474,19 @@ def make_docx(excited_states):
             cell.text = item
     # Save the document
     doc.save(docx_fn)
+
+
+"""
+def as_tiddly_table(excited_states):
+    as_fmt_lists, header = as_table(excited_states)
+    header_line = "|! " + " |! ".join(header) + " |"
+    data_lines = [
+        "| " + " | ".join(exc_line) + " |" for exc_line
+        in as_fmt_lists]
+    print(header_line)
+    for l in data_lines:
+        print(l)
+"""
 
 
 if __name__ == "__main__":
@@ -536,6 +554,9 @@ if __name__ == "__main__":
     parser.add_argument("--docx", action="store_true",
                         help="Output the parsed data as a table into a "
                         ".docx document.")
+    parser.add_argument("--tiddly", action="store_true",
+                        help="Output the parsed data in Tiddlywiki-table"
+                        "format.")
     # Use the argcomplete module for autocompletion if it's available
     if "argcomplete" in sys.modules:
         parser.add_argument("file_name", metavar="fn",
@@ -709,6 +730,9 @@ if __name__ == "__main__":
         sys.exit()
     if args.docx:
         make_docx(excited_states)
+        sys.exit()
+    if args.tiddly:
+        as_tiddly_table(excited_states)
         sys.exit()
     elif args.summary:
         for exc_state in excited_states:
