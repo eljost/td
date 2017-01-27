@@ -408,7 +408,7 @@ def chunks(lst, n):
     for i in range(0, len(lst), n):
         yield lst[i:i+n]
 
-def as_table(excited_states):
+def as_table(excited_states, newline_str="\n"):
     # The table header
     header = ("State",
               "λ / nm",
@@ -439,13 +439,14 @@ def as_table(excited_states):
                         mot.start_irrep,
                         mot.final_mo,
                         mot.final_irrep) for mot in mo_trans]
-        trans_str = "\n".join(trans_list)
+        trans_str = newline_str.join(trans_list)
         weight_list = [weight_fmt.format(mot.contrib)
                        for mot in mo_trans]
-        weight_str = "\n".join(weight_list)
+        weight_str = newline_str.join(weight_list)
         as_fmt_lists[i].extend([trans_str, weight_str])
 
     return as_fmt_lists, header
+
 
 def make_docx(excited_states):
     """Export the supplied excited states into a .docx-document."""
@@ -476,9 +477,13 @@ def make_docx(excited_states):
     doc.save(docx_fn)
 
 
-"""
 def as_tiddly_table(excited_states):
-    as_fmt_lists, header = as_table(excited_states)
+    as_fmt_lists, header = as_table(excited_states, newline_str="<br>")
+    # Surround the numbers in S_i with ,, ,, so they are displayed
+    # with subscript in tiddlywiki.
+    for entry in as_fmt_lists:
+        s = entry[0]
+        print(s)
     header_line = "|! " + " |! ".join(header) + " |"
     data_lines = [
         "| " + " | ".join(exc_line) + " |" for exc_line
@@ -486,7 +491,6 @@ def as_tiddly_table(excited_states):
     print(header_line)
     for l in data_lines:
         print(l)
-"""
 
 
 if __name__ == "__main__":
