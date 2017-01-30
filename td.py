@@ -12,6 +12,7 @@ import re
 import sys
 
 import numpy as np
+import simplejson as json
 from tabulate import tabulate
 # Optional modules
 try:
@@ -117,17 +118,23 @@ class ExcitedState:
             trans_to_correct.contrib -= bt.contrib
 
     def print_mo_transitions(self, verbose_mos):
-        for mo_trans in self.mo_transitions:
+        for mot in self.mo_transitions:
             # Suppresss backexcitations like
             # 89B <- 90B
-            if mo_trans.to_or_from == "<-":
+            if mot.to_or_from == "<-":
                 continue
-            print(mo_trans.outstr())
+            print(mot.outstr())
             if verbose_mos:
-                print("\t\t{0} -> {1}").format(
-                    verbose_mos[int(mo_trans.start_mo)],
-                    verbose_mos[int(mo_trans.final_mo)]
-                )
+                try:
+                    start_mo_verbose = verbose_mos[mot.start_tpl]
+                    final_mo_verbose = verbose_mos[mot.final_tpl]
+                    print("\t\t{0} -> {1}".format(
+                        start_mo_verbose,
+                        final_mo_verbose
+                    ))
+                except KeyError as err:
+                    logging.warning("Verbose MO name for {} {}"
+                                    " missing!".format(*err.args[0]))
 
     def suppress_low_ci_coeffs(self, thresh):
         # Check if excitation lies below ci coefficient threshold
@@ -209,6 +216,12 @@ class MOTransition:
 
     def __str__(self):
         return self.outstr()
+
+    def start_tpl(self):
+        return (self.start_mo, self.start_irrep)
+
+    def final_tpl(self):
+        return (self.final_mo, self.final_irrep)
 
 
 def conv(to_convert, fmt_str):
@@ -408,16 +421,17 @@ def chunks(lst, n):
     for i in range(0, len(lst), n):
         yield lst[i:i+n]
 
-def as_table(excited_states, newline_str="\n"):
+
+def as_table(excited_states, verbose_mos, newline_str="\n"):
     # The table header
     header = ("State",
               "λ / nm",
               "E / eV",
               "f",
               "Transition",
-              "Weight / %")
+              "Weight")
     attrs = ("id", "l", "dE", "f")
-    trans_fmt = "({} {}) → ({} {})"
+    trans_fmt = "{} ({} {}) → {} ({} {})"
     weight_fmt = "{:.0%}"
 
     # Prepare the data to be inserted into the table
@@ -434,21 +448,36 @@ def as_table(excited_states, newline_str="\n"):
     # weights.
     for i, exc_state in enumerate(excited_states):
         mo_trans = exc_state.mo_transitions
-        trans_list = [trans_fmt.format(
-                        mot.start_mo,
-                        mot.start_irrep,
-                        mot.final_mo,
-                        mot.final_irrep) for mot in mo_trans]
-        trans_str = newline_str.join(trans_list)
+        trans_str_list = list()
+        # This loops over all MOTransitions for ONE excited state
+        for mot in mo_trans:
+            start_tpl = mot.start_tpl()
+            final_tpl = mot.final_tpl()
+            try:
+                verbose_start_mo = verbose_mos[start_tpl]
+                verbose_final_mo = verbose_mos[final_tpl]
+            except:
+                verbose_start_mo = ""
+                verbose_final_mo = ""
+
+            trans_str = trans_fmt.format(
+                            verbose_start_mo,
+                            mot.start_mo,
+                            mot.start_irrep,
+                            verbose_final_mo,
+                            mot.final_mo,
+                            mot.final_irrep)
+            trans_str_list.append(trans_str)
         weight_list = [weight_fmt.format(mot.contrib)
                        for mot in mo_trans]
         weight_str = newline_str.join(weight_list)
+        trans_str = newline_str.join(trans_str_list)
         as_fmt_lists[i].extend([trans_str, weight_str])
 
     return as_fmt_lists, header
 
 
-def make_docx(excited_states):
+def make_docx(excited_states, verbose_mos):
     """Export the supplied excited states into a .docx-document."""
     # Check if docx was imported properly. If not exit.
     if "docx" not in sys.modules:
@@ -456,7 +485,7 @@ def make_docx(excited_states):
         sys.exit()
 
     docx_fn = "export.docx"
-    as_fmt_lists, header = as_table(excited_states)
+    as_fmt_lists, header = as_table(excited_states, verbose_mos)
 
     # Prepare the document and the table
     doc = Document()
@@ -477,13 +506,12 @@ def make_docx(excited_states):
     doc.save(docx_fn)
 
 
-def as_tiddly_table(excited_states):
-    as_fmt_lists, header = as_table(excited_states, newline_str="<br>")
+def as_tiddly_table(excited_states, verbose_mos):
+    as_fmt_lists, header = as_table(excited_states,
+                                    verbose_mos,
+                                    newline_str="<br>")
     # Surround the numbers in S_i with ,, ,, so they are displayed
     # with subscript in tiddlywiki.
-    for entry in as_fmt_lists:
-        s = entry[0]
-        print(s)
     header_line = "|! " + " |! ".join(header) + " |"
     data_lines = [
         "| " + " | ".join(exc_line) + " |" for exc_line
@@ -519,8 +547,10 @@ if __name__ == "__main__":
                         help="Just print the data, without the table.")
     parser.add_argument("--by-id", dest="by_id", type=int,
                         help="Display excited state with specific id.")
+    """
     parser.add_argument("--csv",
                         help="Read csv file containing verbose MO-names.")
+    """
     parser.add_argument("--summary", action="store_true",
                         help="Print summary to stdout.")
     parser.add_argument("--ci-coeff", dest="ci_coeff", type=float,
@@ -571,6 +601,7 @@ if __name__ == "__main__":
                             help="File to parse.")
     args = parser.parse_args()
 
+    """
     # Try to look for csv file with MO names
     # [root of args.file_name] + "_mos.csv"
     root_file_name = os.path.splitext(args.file_name)[0]
@@ -585,6 +616,22 @@ if __name__ == "__main__":
             for row in csv_reader:
                 id, mo_type = row
                 verbose_mos[int(id)] = mo_type
+    """
+
+    try:
+        mo_data_fn = "mos.json"
+        with open(mo_data_fn) as handle:
+            json_data = json.load(handle)
+
+        verbose_mos = dict()
+        for key in json_data:
+            mo, irrep = key.split()
+            #mo = int(mo)
+            verbose_mos[(mo, irrep)] = json_data[key]
+    except IOError:
+        logging.warning("Couldn't find verbose MO-names"
+                        " in mos.json")
+        verbose_mos = None
 
     # Parse outputs
     if args.file_name == "escf.out":
@@ -733,10 +780,10 @@ if __name__ == "__main__":
         # Don't print lowest starting MO etc. ...
         sys.exit()
     if args.docx:
-        make_docx(excited_states)
+        make_docx(excited_states, verbose_mos)
         sys.exit()
     if args.tiddly:
-        as_tiddly_table(excited_states)
+        as_tiddly_table(excited_states, verbose_mos)
         sys.exit()
     elif args.summary:
         for exc_state in excited_states:

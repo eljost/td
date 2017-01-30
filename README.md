@@ -11,6 +11,7 @@ td.py requires:
 
     Python 3.x
     numpy
+    simplejson
     
 Optional packages are:
 
