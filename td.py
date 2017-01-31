@@ -126,8 +126,8 @@ class ExcitedState:
             print(mot.outstr())
             if verbose_mos:
                 try:
-                    start_mo_verbose = verbose_mos[mot.start_tpl]
-                    final_mo_verbose = verbose_mos[mot.final_tpl]
+                    start_mo_verbose = verbose_mos[mot.start_tpl()]
+                    final_mo_verbose = verbose_mos[mot.final_tpl()]
                     print("\t\t{0} -> {1}".format(
                         start_mo_verbose,
                         final_mo_verbose

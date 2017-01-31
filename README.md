@@ -71,7 +71,7 @@ Several export-formats are available:
 
 | Format | Argument | Comment |
 | --------- | ------------- | ------------- |
-| booktabs | \-\-booktabs | To be used in .tex-documents |
-| raw | \-\-raw | Export without any formatting |
-| docx | \-\-docx | Export to an .docx-document. Needs python-docx-module |
-| tiddlywiki | \-\-tiddly | Export as a tiddlywiki-table |
+| booktabs | \-\-booktabs | To be used in .tex-documents (doesn't export transitions and weights yet).|
+| raw | \-\-raw | Export without any formatting. |
+| docx | \-\-docx | Export to an .docx-document. Needs python-docx-module. |
+| tiddlywiki | \-\-tiddly | Export as a tiddlywiki-table. |
