@@ -27,23 +27,38 @@ Display the help message with all available commands:
 
 Common usage examples are the generation of broadened spectra from calculated excitation energies and oscillator strenghts according to http://www.gaussian.com/g_whitepap/tn_uvvisplot.htm and this paper https://dx.doi.org/10.1002/chir.20733. Spectra can be generated in two ways: Unnormalized (ε in l mol⁻¹ cm⁻¹) or normalized with the brightest  peak set to 1 (in arbitrary units). The spectrum is printed to STDOUT.
 
+### Verbose MO names 
+Verbose MO names can optionally be loaded from a *mos.json* file with the following format:
+
+	{
+		"[MO number] [MO irrep] : "[verbose name]",
+		e.g.,
+		"61 a'" : "dπ₁",
+		"39 a\"" : "dπ₂"
+		
+		! The last entry must NOT have a comma at the end
+	}
+
 ### Spectrum generation
 
-Normalized spectrum:
+td.py exports the spectrum ε(x) for x in two different units: *nm* and *eV*. The first two blocks hold the spectrum and the oscillator strength impulses in *nm*, the third and fourth the same data in *eV*. Within *gnuplot* the data blocks can be easily accessed by with the *index [id]* command.
+
+#### Normalized spectrum with (ε/ε~max~) on the ordinate:
 
 	./td.py [fn] --spectrum [from in nm] [to in nm]  > [outfn]
 	
-Unnormalized spectrum with --nnorm flag:
+#### Non-normalized spectrum with ε on the ordinate:
 
 	./td.py [fn] --spectrum [from in nm] [to in nm] --nnorm > [outfn]
 	
-When used with the argument e2f the molecular extinction coefficients on the ordinate will be converted to a oscillator strength scale.
+#### Oscillator strength scale on the ordiante
+When used with the argument  *\-\-e2f* the molecular extinction coefficients on the ordinate will be converted to an oscillator strength scale.
 
 	./td.py [fn] --spectrum [from in nm] [to in nm] --e2f --nnorm > [outfn]
 
 ### Filtering
 
-To investigate excited state optimizations it may be useful to split the output in chunks, where chunks should equal the number of calculated roots at every step of the optimization:
+To investigate a **Gaussian 09** excited state optimization it may be useful to split the output in chunks, where chunks should equal the number of calculated roots at every step of the optimization:
 
 	./td.py [fn] --chunks [roots]
 
@@ -59,3 +74,4 @@ Several export-formats are available:
 | booktabs | \-\-booktabs | To be used in .tex-documents |
 | raw | \-\-raw | Export without any formatting |
 | docx | \-\-docx | Export to an .docx-document. Needs python-docx-module |
+| tiddlywiki | \-\-tiddly | Export as a tiddlywiki-table |

@@ -355,10 +355,24 @@ def gauss_uv_band(l, f, l_i):
             np.exp(-((1. / l - 1. / l_i) / (1. / 3099.6))**2))
 
 
-def print_impulse(f, l):
-    #print(l, 0)
-    print(l, f)
-    #print(l, 0)
+def print_spectrum(abscissa, ordinate, fli):
+    for x, y in zip(abscissa, ordinate):
+        print(x, y)
+    print()
+    print()
+
+    for f, l in fli:
+        print(l, f)
+    print()
+    print()
+
+    """
+    if highlight_impulses:
+        print()
+        print()
+        for f, l in [fli[i - 1] for i in highlight_impulses]:
+            print_impulse(f, l)
+    """
 
 
 def make_spectrum(excited_states, start_l, end_l, normalized,
@@ -366,8 +380,13 @@ def make_spectrum(excited_states, start_l, end_l, normalized,
     # According to:
     # http://www.gaussian.com/g_whitepap/tn_uvvisplot.htm
     # wave lengths and oscillator strengths
+    # E(eV) = 1240.6691 eV * nm / l(nm)
+    NM2EV = 1240.6691
+
     fli = [(es.f, es.l) for es in excited_states]
+    flieV = [(f, NM2EV/l) for f, l in fli]
     x = np.arange(start_l, end_l, 0.5)
+    xeV = NM2EV / x
     spectrum = list()
     for l in x:
         spectrum.append(np.sum([gauss_uv_band(l, f, l_i) for f, l_i in fli]))
@@ -376,21 +395,10 @@ def make_spectrum(excited_states, start_l, end_l, normalized,
         spectrum /= 40490.05867167
     if normalized:
         spectrum = spectrum / spectrum.max()
-    # Output spectrum
-    for x, y in zip(x, spectrum):
-        print(x, y)
-
-    # Output oscillator strength impulses
-    print()
-    print()
-    for f, l in fli:
-        print_impulse(f, l)
-
-    if highlight_impulses:
-        print
-        print
-        for f, l in [fli[i - 1] for i in highlight_impulses]:
-            print_impulse(f, l)
+    # Print spectrum in nm
+    print_spectrum(x, spectrum, fli)
+    # Print spectrum in eV
+    print_spectrum(xeV, spectrum, flieV)
 
     """
     Used for printing also the gauss bands of the
