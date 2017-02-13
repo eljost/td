@@ -642,7 +642,7 @@ if __name__ == "__main__":
         verbose_mos = None
 
     # Parse outputs
-    if args.file_name == "escf.out":
+    if args.file_name.endswith("escf.out"):
         # TURBOMOLE
         excited_states, mos = parse_escf(args.file_name)
     else:
