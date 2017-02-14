@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Johannes Steinmetzer
+# Johannes Steinmetzer, 2017
 # PYTHON_ARGCOMPLETE_OK
 
 import argparse
-import csv
 import itertools
 import logging
 import os
 import re
 import sys
 
+from jinja2 import Environment, FileSystemLoader
 import numpy as np
 import simplejson as json
-from tabulate import tabulate
+from td.tabulate import tabulate
+from td.parser.ricc2 import parse_ricc2
+from td.parser.escf import parse_escf
+from td.ExcitedState import ExcitedState
 # Optional modules
 try:
     import argcomplete
@@ -39,189 +42,7 @@ CONV_DICT = {
         "f": float,
 }
 
-
-class ExcitedState:
-    def __init__(self, id, spin, spat, dE, l, f, s2):
-        self.id = id
-        self.spin = spin
-        self.spat = spat
-        self.dE = dE
-        self.l = l
-        self.f = f
-        self.s2 = s2
-        self.rr_weight = None
-
-        self.mo_transitions = list()
-
-    def as_list(self, attrs=None):
-        if not attrs:
-            attrs = ("id",
-                     "spin",
-                     "spat",
-                     "dE",
-                     "l",
-                     "f",
-                     "s2")
-        return [getattr(self, a) for a in attrs]
-
-    def add_mo_transition(self, start_mo, to_or_from, final_mo, ci_coeff,
-                          start_spin=None, final_spin=None,
-                          contrib=None,
-                          start_irrep="a", final_irrep="a"):
-        if not start_spin:
-            start_spin = "alpha"
-        if not final_spin:
-            final_spin = "alpha"
-        self.mo_transitions.append(MOTransition(
-            start_mo, to_or_from, final_mo, ci_coeff,
-            contrib, start_spin, final_spin, start_irrep, final_irrep)
-        )
-
-    def get_start_mos(self):
-        return set([mo_tr.start_mo for mo_tr in self.mo_transitions])
-
-    def get_final_mos(self):
-        return set([mo_tr.final_mo for mo_tr in self.mo_transitions])
-
-    def has_mo_transition(self, start_mo, final_mo):
-        return bool(
-            [mo_exc for mo_exc in self.mo_transitions
-             if (start_mo == mo_exc.start_mo) and
-                (final_mo == mo_exc.final_mo)]
-        )
-
-    def is_singlet(self):
-        return self.spin == "Singlet".lower()
-
-    def calculate_contributions(self):
-        for mo_trans in self.mo_transitions:
-            if mo_trans.contrib is not None:
-                continue
-            contrib = mo_trans.ci_coeff**2
-            if self.is_singlet():
-                contrib *= 2
-            mo_trans.contrib = contrib
-
-    def correct_backexcitations(self):
-        # Check if there are any back-excitations, e.g.
-        # 89B <- 90B
-        back_transitions = [bt for bt in self.mo_transitions
-                            if bt.to_or_from == "<-"]
-        for bt in back_transitions:
-            final_mo = bt.start_mo
-            start_mo = bt.final_mo
-            # Find corresponding transition from final_mo -> start_mo
-            trans_to_correct = [t for t in self.mo_transitions
-                                if (t.start_mo == final_mo and
-                                    t.final_mo == start_mo)][0]
-            # Correct contribution of trans_to_correct
-            trans_to_correct.contrib -= bt.contrib
-
-    def print_mo_transitions(self, verbose_mos):
-        for mot in self.mo_transitions:
-            # Suppresss backexcitations like
-            # 89B <- 90B
-            if mot.to_or_from == "<-":
-                continue
-            print(mot.outstr())
-            if verbose_mos:
-                try:
-                    start_mo_verbose = verbose_mos[mot.start_tpl()]
-                    final_mo_verbose = verbose_mos[mot.final_tpl()]
-                    print("\t\t{0} -> {1}".format(
-                        start_mo_verbose,
-                        final_mo_verbose
-                    ))
-                except KeyError as err:
-                    logging.warning("Verbose MO name for {} {}"
-                                    " missing!".format(*err.args[0]))
-
-    def suppress_low_ci_coeffs(self, thresh):
-        # Check if excitation lies below ci coefficient threshold
-        # if it does don't add this excitation
-        contrib_thresh = thresh**2 * 2
-        to_del = list()
-        for mo_trans in self.mo_transitions:
-            if mo_trans.contrib:
-                if mo_trans.contrib <= contrib_thresh:
-                    to_del.append(mo_trans)
-                continue
-            if abs(mo_trans.ci_coeff) <= thresh:
-                to_del.append(mo_trans)
-        for td in to_del:
-            self.mo_transitions.remove(td)
-
-    def calc_rr_weight(self, rr_exc):
-        l_in_cm = 10**7 / self.l
-        rr_ex_in_cm = 10**7 / rr_exc
-        G = 1500j
-        self.rr_weight = self.f * abs(G/(l_in_cm-rr_ex_in_cm-G))
-
-    def update_irreps(self):
-        """Find out which irreps are important for the MOTransitions."""
-        start_irreps = [mo_trans.start_irrep for mo_trans
-                        in self.mo_transitions]
-        final_irreps = [mo_trans.final_irrep for mo_trans
-                        in self.mo_transitions]
-        self.irreps = set(start_irreps + final_irreps)
-
-        self.mo_trans_per_irrep = dict()
-        for irrep in self.irreps:
-            start_mos = [mot.start_mo for mot in self.mo_transitions
-                         if mot.start_irrep == irrep]
-            final_mos = [mot.final_mo for mot in self.mo_transitions
-                         if mot.final_irrep == irrep]
-            unique_mos = set(start_mos + final_mos)
-            self.mo_trans_per_irrep[irrep] = unique_mos
-
-    """
-    # find lowest orbital from where an excitation originates
-    min_mo = min(itertools.chain(*[exc_state.get_start_mos()
-                                   for exc_state in excited_states]))
-    # find highest lying orbital where an excitation ends
-    max_mo = max(itertools.chain(*[exc_state.get_final_mos()
-                                   for exc_state in excited_states]))
-    """
-
-    def __str__(self):
-        print("#{0} {1} eV f={2}").format(self.id, self.dE, self.f)
-
-
-class MOTransition:
-    def __init__(self, start_mo, to_or_from, final_mo, ci_coeff,
-                 contrib, start_spin, final_spin,
-                 start_irrep, final_irrep):
-        self.start_mo = start_mo
-        self.start_spin = start_spin
-        self.to_or_from = to_or_from
-        self.final_mo = final_mo
-        self.final_spin = final_spin
-        self.ci_coeff = ci_coeff
-        self.contrib = contrib
-        self.start_irrep = start_irrep
-        self.final_irrep = final_irrep
-
-    def outstr(self):
-        return "\t{0:>5s}{1} {2} {3} {4:>5s}{5} {6}" \
-               "\t{7: 5.3f}\t{8:3.1%}".format(
-                self.start_mo,
-                self.start_irrep,
-                self.start_spin[0],
-                self.to_or_from,
-                self.final_mo,
-                self.final_irrep,
-                self.final_spin[0],
-                self.ci_coeff,
-                self.contrib)
-
-    def __str__(self):
-        return self.outstr()
-
-    def start_tpl(self):
-        return (self.start_mo, self.start_irrep)
-
-    def final_tpl(self):
-        return (self.final_mo, self.final_irrep)
+THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
 def conv(to_convert, fmt_str):
@@ -284,65 +105,6 @@ def get_excited_states(file_name):
     handle.close()
 
     return excited_states, involved_mos
-
-
-def parse_escf(fn):
-    with open(fn) as handle:
-        text = handle.read()
-
-    # In openshell calculations TURBOMOLE omits the multiplicity in
-    # the string.
-    sym = "(\d+)\s+(singlet|doublet|triplet|quartet|quintet|sextet)?" \
-          "\s*([\w'\"]+)\s+excitation"
-    sym_re = re.compile(sym)
-    syms = sym_re.findall(text)
-    syms = [(int(id_), spin, spat) for id_, spin, spat in syms]
-
-    exc_energy = "Excitation energy:\s*([\d\.E\+-]+)"
-    exc_energy_re = re.compile(exc_energy)
-    ees = exc_energy_re.findall(text)
-    ees = [float(ee) for ee in ees]
-
-    osc_strength = "mixed representation:\s*([\d\.E\+-]+)"
-    osc_strength_re = re.compile(osc_strength)
-    oscs = osc_strength_re.findall(text)
-    oscs = [float(osc) for osc in oscs]
-
-    dom_contrib = "2\*100(.*?)Change of electron number"
-    dom_contrib_re = re.compile(dom_contrib, flags=re.MULTILINE | re.DOTALL)
-    dcs = dom_contrib_re.findall(text)
-    dc_str = "(\d+) ([\w'\"]+)\s*(beta|alpha)?\s+([-\d\.]+)\s*" \
-             "(\d+) ([\w'\"]+)\s*(beta|alpha)?\s+([-\d\.]+)\s*" \
-             "([\d\.]+)"
-    dc_re = re.compile(dc_str)
-    dcs_parsed = [dc_re.findall(exc) for exc in dcs]
-
-    excited_states = list()
-    dom_contribs = list()
-    for sym, ee, osc, dc in zip(syms, ees, oscs, dcs_parsed):
-        id_, spin, spat = sym
-        dE = ee * 27.211386
-        l = 45.56335 / ee
-
-        exc_state = ExcitedState(id_, spin, spat, dE, l, osc, "???")
-        excited_states.append(exc_state)
-        for d in dc:
-            start_mo = d[0]
-            start_irrep = d[1]
-            start_spin = d[2]
-            final_mo = d[4]
-            final_irrep = d[5]
-            final_spin = d[6]
-            to_or_from = "->"
-            contrib = float(d[8]) / 100
-            exc_state.add_mo_transition(start_mo, to_or_from, final_mo,
-                                        ci_coeff=-0, contrib=contrib,
-                                        start_spin=start_spin,
-                                        final_spin=final_spin,
-                                        start_irrep=start_irrep,
-                                        final_irrep=final_irrep)
-
-    return excited_states, dom_contribs
 
 
 def gaussian_logs_completer(prefix, **kwargs):
@@ -529,6 +291,45 @@ def as_tiddly_table(excited_states, verbose_mos):
         print(l)
 
 
+def as_theodore(excited_states):
+    """Combine the NTO-pictures generated by THEOdore/JMOl with
+    the information parsed by td.py in a new .html-document."""
+    # Search for  NTO-pictures in ./theodore
+    pngs = [f for f in os.listdir("./theodore")
+            if f.endswith(".png")]
+    # Their naming follows the pattern
+    # NTO{MO}{sym}_{pairNum}{o|v}_{weight}.png
+    png_regex = "NTO(\d+)a_(\d+)(o|v)_([\d\.]+)\.png"
+    parsed_png_fns = [re.match(png_regex, png).groups()
+                      for png in pngs]
+    # Convert the data to their proper types
+    parsed_png_fns = [(int(state), int(pair), ov, float(weight))
+                      for state, pair, ov, weight in parsed_png_fns]
+    # Combine the data with the filenames of the .pngs
+    zipped = [(p, *parsed_png_fns[i])
+              for i, p in enumerate(pngs)]
+    # Neglect NTOs below a certain weights below 20%
+    zipped = [nto for nto in zipped if nto[4] >= 0.2]
+    # Sort by state, by weight, by pair  and by occupied vs. virtual
+    zipped = sorted(zipped, key=lambda nto: (nto[1], -nto[4], nto[2], nto[3]))
+    assert((len(zipped) % 2) == 0)
+    nto_dict = dict()
+    for nto_pair in chunks(zipped, 2):
+        onto, vnto = nto_pair
+        assert(onto[1] == vnto[1])
+        ofn, state, pair, ov, weight = onto
+        vfn = vnto[0]
+        nto_dict.setdefault(state, list()).append((ofn, vfn, weight))
+
+    j2_env = Environment(loader=FileSystemLoader(THIS_DIR,
+                                                 followlinks=True))
+    tpl = j2_env.get_template("templates/theo.tpl")
+    ren = tpl.render(states=excited_states[:len(nto_dict)],
+                     nto_dict=nto_dict)
+    with open("theo_comb.html", "w") as handle:
+        handle.write(ren)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
             "Displays output from Gaussian-td-calculation,"
@@ -599,6 +400,8 @@ if __name__ == "__main__":
     parser.add_argument("--tiddly", action="store_true",
                         help="Output the parsed data in Tiddlywiki-table"
                         "format.")
+    parser.add_argument("--theodore", action="store_true",
+                        help="Output HTML with NTO-picture from THEOdore.")
     # Use the argcomplete module for autocompletion if it's available
     if "argcomplete" in sys.modules:
         parser.add_argument("file_name", metavar="fn",
@@ -641,10 +444,16 @@ if __name__ == "__main__":
                         " in mos.json")
         verbose_mos = None
 
+    with open(args.file_name) as handle:
+        text = handle.read()
+
     # Parse outputs
     if args.file_name.endswith("escf.out"):
-        # TURBOMOLE
-        excited_states, mos = parse_escf(args.file_name)
+        # TURBOMOLE escf
+        excited_states, mos = parse_escf(text)
+    elif args.file_name.endswith("ricc2.out"):
+        # TURBOMOLE ricc2
+        excited_states, mos = parse_ricc2(text)
     else:
         # Gaussian
         excited_states, mos = get_excited_states(args.file_name)
@@ -653,6 +462,7 @@ if __name__ == "__main__":
         exc_state.correct_backexcitations()
         exc_state.suppress_low_ci_coeffs(args.ci_coeff)
         exc_state.update_irreps()
+
 
     if args.only_first:
         excited_states = excited_states[:args.only_first]
@@ -793,6 +603,8 @@ if __name__ == "__main__":
     if args.tiddly:
         as_tiddly_table(excited_states, verbose_mos)
         sys.exit()
+    if args.theodore:
+        as_theodore(excited_states)
     elif args.summary:
         for exc_state in excited_states:
             print_table([exc_state, ])
