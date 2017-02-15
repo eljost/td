@@ -1,8 +1,8 @@
 # td.py
 
-Parser for excited state calculations done with **Gaussian 09** (*td* keyword) or **TURBOMOLE** (only *escf* module).
+Parser for excited state calculations done with **Gaussian 09** (*td* keyword) or **TURBOMOLE** (*escf* and *ricc2* module).
 
-By default the script expects **Gaussian 09** logs, but when the supplied filename is *escf.out* it will be parsed as **TURBOMOLE**-log.
+By default the script expects **Gaussian 09** logs, but when the supplied filename ends with *escf.out* or *ricc2* it will be parsed as **TURBOMOLE**-log of appropriate type.
 
 The script uses a slightly modified version of Sergey Astanin's **tabulate** module (https://bitbucket.org/astanin/python-tabulate). Thanks to him.
 
@@ -25,7 +25,7 @@ Display the help message with all available commands:
 
 	td.py -h
 
-Common usage examples are the generation of broadened spectra from calculated excitation energies and oscillator strenghts according to http://www.gaussian.com/g_whitepap/tn_uvvisplot.htm and this paper https://dx.doi.org/10.1002/chir.20733. Spectra can be generated in two ways: Unnormalized (ε in l mol⁻¹ cm⁻¹) or normalized with the brightest  peak set to 1 (in arbitrary units). The spectrum is printed to STDOUT.
+Common usage examples are the generation of broadened spectra from calculated excitation energies and oscillator strenghts according to http://www.gaussian.com/g_whitepap/tn_uvvisplot.htm and this paper https://dx.doi.org/10.1002/chir.20733. Spectra can be generated in two ways: Not normalized (ε in l mol⁻¹ cm⁻¹) or normalized with the brightest  peak set to 1 (ε/ε_max). The spectrum is printed to STDOUT.
 
 ### Verbose MO names 
 Verbose MO names can optionally be loaded from a *mos.json* file with the following format:
@@ -41,7 +41,7 @@ Verbose MO names can optionally be loaded from a *mos.json* file with the follow
 
 ### Spectrum generation
 
-td.py exports the spectrum ε(x) for x in two different units: *nm* and *eV*. The first two blocks hold the spectrum and the oscillator strength impulses in *nm*, the third and fourth the same data in *eV*. Within *gnuplot* the data blocks can be easily accessed by with the *index [id]* command.
+td.py exports the spectrum ε(x) for x in two different units: *nm* and *eV*. The first two blocks hold the spectrum and the oscillator strength impulses in *nm*, the third and fourth blocks hold the same data in *eV*. Within *gnuplot* the data blocks can be easily accessed by with the *index [id]* command.
 
 #### Normalized spectrum with (ε/ε~max~) on the ordinate:
 

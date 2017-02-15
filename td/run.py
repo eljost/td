@@ -312,8 +312,6 @@ def as_theodore(excited_states):
     # Sort by state, by weight, by pair  and by occupied vs. virtual
     zipped = sorted(zipped, key=lambda nto: (nto[2], nto[1], -nto[5],
                                              nto[3], nto[4]))
-    for z in zipped:
-        print(z)
     assert((len(zipped) % 2) == 0)
     nto_dict = dict()
     for nto_pair in chunks(zipped, 2):
@@ -323,8 +321,6 @@ def as_theodore(excited_states):
         vfn = vnto[0]
         key = (state, irrep)
         nto_dict.setdefault(key, list()).append((ofn, vfn, weight))
-    for k in nto_dict:
-        print(k, nto_dict[k])
 
     j2_env = Environment(loader=FileSystemLoader(THIS_DIR,
                                                  followlinks=True))
@@ -349,6 +345,8 @@ if __name__ == "__main__":
                              "wavelength range (e.g. 400 450).")
     parser.add_argument("--sf", action="store_true",
                         help="Sort by oscillator strength.")
+    parser.add_argument("--se", action="store_true",
+                        help="Sort by energy.")
     parser.add_argument("--start-mos", dest="start_mos", type=str, nargs="+",
                         help="Show only transitions from this MO.")
     parser.add_argument("--final-mos", dest="final_mos", type=str, nargs="+",
@@ -527,6 +525,9 @@ if __name__ == "__main__":
     if args.sf:
         excited_states = sorted(excited_states,
                                 key=lambda exc_state: -exc_state.f)
+    if args.se:
+        excited_states = sorted(excited_states,
+                                key=lambda es: -es.l)
     """
     # Sorting by energy is the default.
     else:
