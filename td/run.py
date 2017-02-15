@@ -14,8 +14,7 @@ from jinja2 import Environment, FileSystemLoader
 import numpy as np
 import simplejson as json
 from td.tabulate import tabulate
-from td.parser.ricc2 import parse_ricc2
-from td.parser.escf import parse_escf
+from td.parser.turbomole import parse_escf, parse_ricc2
 from td.ExcitedState import ExcitedState
 # Optional modules
 try:
@@ -299,27 +298,33 @@ def as_theodore(excited_states):
             if f.endswith(".png")]
     # Their naming follows the pattern
     # NTO{MO}{sym}_{pairNum}{o|v}_{weight}.png
-    png_regex = "NTO(\d+)a_(\d+)(o|v)_([\d\.]+)\.png"
+    png_regex = "NTO(\d+)([\w'\"]+)_(\d+)(o|v)_([\d\.]+)\.png"
     parsed_png_fns = [re.match(png_regex, png).groups()
                       for png in pngs]
     # Convert the data to their proper types
-    parsed_png_fns = [(int(state), int(pair), ov, float(weight))
-                      for state, pair, ov, weight in parsed_png_fns]
+    parsed_png_fns = [(int(state), irrep, int(pair), ov, float(weight))
+                      for state, irrep, pair, ov, weight in parsed_png_fns]
     # Combine the data with the filenames of the .pngs
     zipped = [(p, *parsed_png_fns[i])
               for i, p in enumerate(pngs)]
     # Neglect NTOs below a certain weights below 20%
-    zipped = [nto for nto in zipped if nto[4] >= 0.2]
+    zipped = [nto for nto in zipped if nto[5] >= 0.2]
     # Sort by state, by weight, by pair  and by occupied vs. virtual
-    zipped = sorted(zipped, key=lambda nto: (nto[1], -nto[4], nto[2], nto[3]))
+    zipped = sorted(zipped, key=lambda nto: (nto[2], nto[1], -nto[5],
+                                             nto[3], nto[4]))
+    for z in zipped:
+        print(z)
     assert((len(zipped) % 2) == 0)
     nto_dict = dict()
     for nto_pair in chunks(zipped, 2):
         onto, vnto = nto_pair
-        assert(onto[1] == vnto[1])
-        ofn, state, pair, ov, weight = onto
+        assert(onto[2] == vnto[2])
+        ofn, state, irrep, pair, ov, weight = onto
         vfn = vnto[0]
-        nto_dict.setdefault(state, list()).append((ofn, vfn, weight))
+        key = (state, irrep)
+        nto_dict.setdefault(key, list()).append((ofn, vfn, weight))
+    for k in nto_dict:
+        print(k, nto_dict[k])
 
     j2_env = Environment(loader=FileSystemLoader(THIS_DIR,
                                                  followlinks=True))
@@ -519,16 +524,18 @@ if __name__ == "__main__":
         excited_states = states
 
     # Sort by oscillator strength if requested.
-    # Sorting by energy is the default.
     if args.sf:
         excited_states = sorted(excited_states,
                                 key=lambda exc_state: -exc_state.f)
+    """
+    # Sorting by energy is the default.
     else:
         excited_states = sorted(excited_states,
                                 key=lambda exc_state: exc_state.dE)
         # Relabel the states from 1 to len(excited_states)
         for i, es in enumerate(excited_states, 1):
             es.id = i
+    """
     # Only show excitations in specified wavelength-range
     if args.range:
         # Only lower threshold specified (energy wise)

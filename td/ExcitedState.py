@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import re
+
+from helper_funcs import IRREPS_REPL
 from td.MOTransition import MOTransition
 
 
 class ExcitedState:
     def __init__(self, id, spin, spat, dE, l, f, s2):
-        self.id = id
+        self.id = int(id)
         self.spin = spin
         self.spat = spat
         self.dE = dE
@@ -16,6 +19,12 @@ class ExcitedState:
         self.rr_weight = None
 
         self.mo_transitions = list()
+        self.irrep = self.spat
+        self.normalize_irrep()
+
+    def normalize_irrep(self):
+        for key in IRREPS_REPL:
+            self.irrep = re.sub(key, IRREPS_REPL[key], self.irrep)
 
     def as_list(self, attrs=None):
         if not attrs:
@@ -87,7 +96,7 @@ class ExcitedState:
             # 89B <- 90B
             if mot.to_or_from == "<-":
                 continue
-            )print(mot.outstr())
+            print(mot.outstr())
             if verbose_mos:
                 try:
                     start_mo_verbose = verbose_mos[mot.start_tpl()]

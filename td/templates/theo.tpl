@@ -32,12 +32,12 @@
             {{ "%.2f" | format(state.dE) }} eV,
             f={{ "%.4f" | format(state.f) }}
         </h2>
-        {% for i in range((nto_dict[state.id]|length // 2)+1) %}
+        {% for i in range((nto_dict[(state.id, state.irrep)]|length // 2)+1) %}
         <div>
             <figure>
-                <img class="mo" src="theodore/{{ nto_dict[state.id][i][0] }}" />
-                <img class="mo" src="theodore/{{ nto_dict[state.id][i][1] }}" />
-                <figcaption>{{ "%.1f" | format(nto_dict[state.id][i][2]*100) }}%</figcaption>
+                <img class="mo" src="theodore/{{ nto_dict[(state.id, state.irrep)][i][0] }}" />
+                <img class="mo" src="theodore/{{ nto_dict[(state.id, state.irrep)][i][1] }}" />
+                <figcaption>{{ "%.1f" | format(nto_dict[(state.id, state.irrep)][i][2]*100) }}%</figcaption>
             </figure>
         </div>
         {% endfor %}
