@@ -14,7 +14,8 @@ from jinja2 import Environment, FileSystemLoader
 import numpy as np
 import simplejson as json
 from td.tabulate import tabulate
-from td.parser.turbomole import parse_escf, parse_ricc2
+import td.parser.turbomole as turbo
+import td.parser.orca as orca
 from td.ExcitedState import ExcitedState
 # Optional modules
 try:
@@ -405,6 +406,8 @@ if __name__ == "__main__":
                         "format.")
     parser.add_argument("--theodore", action="store_true",
                         help="Output HTML with NTO-picture from THEOdore.")
+    parser.add_argument("--orca", action="store_true",
+                        help="Parse an ORCA-calculation.")
     # Use the argcomplete module for autocompletion if it's available
     if "argcomplete" in sys.modules:
         parser.add_argument("file_name", metavar="fn",
@@ -453,10 +456,12 @@ if __name__ == "__main__":
     # Parse outputs
     if args.file_name.endswith("escf.out"):
         # TURBOMOLE escf
-        excited_states, mos = parse_escf(text)
+        excited_states, mos = turbo.parse_escf(text)
     elif args.file_name.endswith("ricc2.out"):
         # TURBOMOLE ricc2
-        excited_states, mos = parse_ricc2(text)
+        excited_states, mos = turbo.parse_ricc2(text)
+    elif args.orca:
+        excited_states, mos = orca.parse_tddft(text)
     else:
         # Gaussian
         excited_states, mos = get_excited_states(args.file_name)
