@@ -325,7 +325,13 @@ def as_theodore(excited_states):
     j2_env = Environment(loader=FileSystemLoader(THIS_DIR,
                                                  followlinks=True))
     tpl = j2_env.get_template("templates/theo.tpl")
-    ren = tpl.render(states=excited_states[:len(nto_dict)],
+    # Only pass states to the template for which NTO pictures exist
+    states = excited_states[:len(nto_dict)]
+    states = sorted(states, key=lambda es: -es.l)
+    # Update the ids of the states
+    for id, s in enumerate(states, 1):
+        s.id_sorted = id
+    ren = tpl.render(states=states,
                      nto_dict=nto_dict)
     with open("theo_comb.html", "w") as handle:
         handle.write(ren)
