@@ -5,3 +5,4 @@ IRREPS_REPL = {
     "'": "_",
     "\"": "__",
 }
+FLOAT_RE = "([-\.\deEdD]+)"

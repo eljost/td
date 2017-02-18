@@ -3,7 +3,7 @@
 
 import re
 
-from helper_funcs import IRREPS_REPL
+from td.helper_funcs import IRREPS_REPL
 from td.MOTransition import MOTransition
 
 
