@@ -25,9 +25,9 @@ def parse_tddft(text):
               FLOAT_RE)
     moc_re = "\s*".join(moc_re)
     # No spatial symmetry in ORCA
-    sym = "A"
-    start_irrep = "A"
-    final_irrep = "A"
+    sym = "a"
+    start_irrep = "a"
+    final_irrep = "a"
     spin = "???"
     to_or_from = "->"
     for (id, l, f), state_moc in zip(states, states_moc):
