@@ -38,8 +38,8 @@ class ExcitedState:
         return [getattr(self, a) for a in attrs]
 
     def add_mo_transition(self, start_mo, to_or_from, final_mo, ci_coeff,
-                          start_spin=None, final_spin=None,
-                          contrib=None,
+                          start_spin="α", final_spin="α",
+                          contrib=0.0,
                           start_irrep="a", final_irrep="a"):
         if not start_spin:
             start_spin = "alpha"

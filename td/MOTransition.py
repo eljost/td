@@ -7,12 +7,13 @@ class MOTransition:
                  contrib, start_spin, final_spin,
                  start_irrep, final_irrep):
         self.start_mo = int(start_mo)
-        self.start_spin = start_spin
         self.to_or_from = to_or_from
         self.final_mo = int(final_mo)
-        self.final_spin = final_spin
         self.ci_coeff = float(ci_coeff)
+
         self.contrib = float(contrib)
+        self.start_spin = start_spin
+        self.final_spin = final_spin
         self.start_irrep = start_irrep
         self.final_irrep = final_irrep
 

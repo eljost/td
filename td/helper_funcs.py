@@ -6,3 +6,12 @@ IRREPS_REPL = {
     "\"": "__",
 }
 FLOAT_RE = "([-\.\deEdD]+)"
+CONV_DICT = {
+        "s": str,
+        "i": int,
+        "f": float,
+}
+
+
+def conv(to_convert, fmt_str):
+    return [CONV_DICT[t](item) for item, t in zip(to_convert, fmt_str)]
