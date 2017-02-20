@@ -29,7 +29,6 @@ def parse_tddft(text):
             if match_obj:
                 group_list = list(match_obj.groups())
                 conv_mo_excitation = conv(group_list, "sssf")
-                print(conv_mo_excitation)
                 last_exc_state = excited_states[-1]
                 last_exc_state.add_mo_transition(*conv_mo_excitation)
                 try:

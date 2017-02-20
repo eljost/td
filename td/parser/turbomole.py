@@ -33,6 +33,17 @@ def parse_ricc2(text):
                 line.insert(7, "a")
         mo_contribs.append(split)
 
+    # When excited state properties are requested the lists
+    # 'syms', 'spins', 'ees' will be twice as long as 'oscs'
+    # and 'mo_contribs', but they got the same data in both 
+    # halves. So we drop the second half.
+    assert(len(syms) == len(spins) == len(ees))
+    if len(syms) == (2 * len(oscs)):
+        first_half = slice(len(oscs))
+        syms = syms[first_half]
+        spins = spins[first_half]
+        ees = ees[first_half]
+
     assert(len(syms) == len(spins) == len(ees) == len(oscs) ==
            len(mo_contribs))
 
