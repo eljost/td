@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import math
 import re
 
 from td.helper_funcs import IRREPS_REPL
@@ -67,8 +68,10 @@ class ExcitedState:
         return self.spin == "Singlet".lower()
 
     def calculate_contributions(self):
+        #import pdb; pdb.set_trace()
         for mo_trans in self.mo_transitions:
-            if mo_trans.contrib is not None:
+            if (mo_trans.contrib is not None and
+                not math.isclose(mo_trans.contrib, 0.0)):
                 continue
             contrib = mo_trans.ci_coeff**2
             if self.is_singlet():

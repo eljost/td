@@ -27,7 +27,7 @@
     {% for state in states %}
     <div class="state">
         <h2>
-            S<sub>{{ state.id_sorted }}</sub>,
+            S<sub>{{ state.id }}</sub>,
             {{ state.spat }},
             {{ "%.1f" | format(state.l) }} nm,
             {{ "%.2f" | format(state.dE) }} eV,

@@ -15,7 +15,8 @@ def parse_ricc2(text):
     exc_energy_re = "frequency\s*:.+?([\d\.]+)\s*e\.V."
     ees = [float(ee) for ee in re.findall(exc_energy_re, text)]
 
-    osc_strength_re = "\(mixed gauge\)\s*:\s*([\d\.]+)"
+    #osc_strength_re = "\(mixed gauge\)\s*:\s*([\d\.]+)"
+    osc_strength_re = "\(length gauge\)\s*:\s*([\d\.]+)"
     oscs = [float(osc) for osc in re.findall(osc_strength_re, text)]
 
     mo_contrib_re = "occ\. orb\..+?\%\s*\|(.+?)\s*norm"

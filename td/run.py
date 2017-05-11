@@ -253,7 +253,7 @@ def as_theodore(excited_states, fn):
     # Combine the data with the filenames of the .pngs
     zipped = [(p, *parsed_png_fns[i])
               for i, p in enumerate(pngs)]
-    # Neglect NTOs below a certain weights below 20%
+    # Neglect NTOs below a certain threshold (20%)
     zipped = [nto for nto in zipped if nto[5] >= 0.2]
     # Sort by state, by weight, by pair  and by occupied vs. virtual
     zipped = sorted(zipped, key=lambda nto: (nto[2], nto[1], -nto[5],
@@ -273,10 +273,12 @@ def as_theodore(excited_states, fn):
     tpl = j2_env.get_template("templates/theo.tpl")
     # Only pass states to the template for which NTO pictures exist
     states = excited_states[:len(nto_dict)]
+    """
     states = sorted(states, key=lambda es: -es.l)
     # Update the ids of the states
     for id, s in enumerate(states, 1):
         s.id_sorted = id
+    """
     ren = tpl.render(states=states,
                      nto_dict=nto_dict,
                      fn=fn)
