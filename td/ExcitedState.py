@@ -65,7 +65,7 @@ class ExcitedState:
         )
 
     def is_singlet(self):
-        return self.spin == "Singlet".lower()
+        return self.spin.lower() == "Singlet".lower()
 
     def calculate_contributions(self):
         #import pdb; pdb.set_trace()

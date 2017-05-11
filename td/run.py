@@ -82,7 +82,7 @@ def print_spectrum(abscissa, ordinate, fli):
     """
 
 
-def make_spectrum(excited_states, start_l, end_l, normalized,
+def make_spectrum(excited_states, start_l, end_l, nnorm,
                   highlight_impulses=None, e2f=False):
     # According to:
     # http://www.gaussian.com/g_whitepap/tn_uvvisplot.htm
@@ -100,7 +100,7 @@ def make_spectrum(excited_states, start_l, end_l, normalized,
     spectrum = np.array(spectrum)
     if e2f:
         spectrum /= 40490.05867167
-    if normalized:
+    if not nnorm:
         spectrum = spectrum / spectrum.max()
     # Print spectrum in nm
     print_spectrum(x, spectrum, fli)
@@ -333,9 +333,9 @@ if __name__ == "__main__":
     parser.add_argument("--hi", dest="highlight_impulses", type=int,
                         nargs="+", help="List of excitations. Their "
                         "oscillator strength bars will be printed separatly.")
-    parser.add_argument("--nnorm", dest="normalized", action="store_false",
-                        help="Don't normalize the calculated spectrum.",
-                        default=True)
+    parser.add_argument("--nnorm", dest="nnorm", default=False,
+                        action="store_true",
+                        help="Don't normalize the calculated spectrum.")
     parser.add_argument("--irrep", dest="irrep",
                         help="Filter for specific irrep.")
     parser.add_argument("--booktabs", dest="booktabs", action="store_true",
@@ -438,7 +438,7 @@ if __name__ == "__main__":
     if args.spectrum:
         # Starting and ending wavelength of the spectrum to be calculated
         start_l, end_l = args.spectrum
-        make_spectrum(excited_states, start_l, end_l, args.normalized,
+        make_spectrum(excited_states, start_l, end_l, args.nnorm,
                       args.highlight_impulses, args.e2f)
         sys.exit()
 
