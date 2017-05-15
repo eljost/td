@@ -18,7 +18,6 @@ TRS_LINE = r"([\dAB]+)\s*(->|<-)\s*([\dAB]+)\s*\s+([0-9\.-]+)"
 def parse_tddft(text):
     lines = text.split("\n")
     excited_states = list()
-    involved_mos = dict()
 
     matched_exc_state = False
     for line in lines:
@@ -31,11 +30,6 @@ def parse_tddft(text):
                 conv_mo_excitation = conv(group_list, "sssf")
                 last_exc_state = excited_states[-1]
                 last_exc_state.add_mo_transition(*conv_mo_excitation)
-                try:
-                    involved_mos[last_exc_state.id].append(
-                            conv_mo_excitation)
-                except KeyError:
-                    involved_mos[last_exc_state.id] = [conv_mo_excitation, ]
             # stop this matching if a blank line is encountered
             if line.strip() == "":
                 matched_exc_state = False
@@ -46,12 +40,4 @@ def parse_tddft(text):
             excited_states.append(excited_state)
             matched_exc_state = True
 
-    return excited_states, involved_mos
-
-
-if __name__ == "__main__":
-    fn = "/home/carpx/Dokumente/projekte/runobpb/runobpb/01_runobpb_cam_cpcm_td.log"
-    with open(fn) as handle:
-        text = handle.read()
-    es, mos = parse_tddft(text)
-    print(es)
+    return excited_states

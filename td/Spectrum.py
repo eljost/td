@@ -89,7 +89,6 @@ class Spectrum:
 
     def plot_eV(self):
         in_eV, osc_eV = self.eV
-        print(osc_eV)
         fig, ax1 = plt.subplots()
 
         ax1.plot(in_eV[:,0], in_eV[:,1])
@@ -100,5 +99,6 @@ class Spectrum:
 
         ax2 = ax1.twinx()
         ax2.stem(osc_eV[:,0], osc_eV[:,1], markerfmt=" ", basefmt=" ")
+        ax2.set_ylabel("f")
 
         plt.show()

@@ -13,11 +13,14 @@ import sys
 from jinja2 import Environment, FileSystemLoader
 import numpy as np
 import simplejson as json
+
+from td.ExcitedState import ExcitedState
 from td.tabulate import tabulate
 import td.parser.gaussian as gaussian
 import td.parser.orca as orca
 import td.parser.turbomole as turbo
-from td.ExcitedState import ExcitedState
+from Spectrum import Spectrum
+
 # Optional modules
 try:
     import argcomplete
@@ -40,96 +43,9 @@ def print_table(excited_states):
                    floatfmt=floatfmt))
 
 
-"""
-def print_mos(id, mos, mo_names, is_singlet):
-    if mo_names:
-        start_name = final_name = "NO NAME"
-        if start_mo in mo_names:
-            start_name = mo_names[start_mo]
-        if final_mo in mo_names:
-            final_name = mo_names[final_mo]
-        print("{}\t->\t{}".format(
-            start_name, final_name,))
-"""
-
 def gaussian_logs_completer(prefix, **kwargs):
     return [path for path in os.listdir(".") if path.endswith(".out") or
             path.endswith(".log")]
-
-
-def gauss_uv_band(l, f, l_i):
-    return (1.3062974e8 * f / (1e7 / 3099.6) *
-            np.exp(-((1. / l - 1. / l_i) / (1. / 3099.6))**2))
-
-
-def print_spectrum(abscissa, ordinate, fli):
-    for x, y in zip(abscissa, ordinate):
-        print(x, y)
-    print()
-    print()
-
-    for f, l in fli:
-        print(l, f)
-    print()
-    print()
-
-    """
-    if highlight_impulses:
-        print()
-        print()
-        for f, l in [fli[i - 1] for i in highlight_impulses]:
-            print_impulse(f, l)
-    """
-
-
-def make_spectrum(excited_states, start_l, end_l, nnorm,
-                  highlight_impulses=None, e2f=False):
-    # According to:
-    # http://www.gaussian.com/g_whitepap/tn_uvvisplot.htm
-    # wave lengths and oscillator strengths
-    # E(eV) = 1240.6691 eV * nm / l(nm)
-    NM2EV = 1240.6691
-
-    fli = [(es.f, es.l) for es in excited_states]
-    flieV = [(f, NM2EV/l) for f, l in fli]
-    x = np.arange(start_l, end_l, 0.5)
-    xeV = NM2EV / x
-    spectrum = list()
-    for l in x:
-        spectrum.append(np.sum([gauss_uv_band(l, f, l_i) for f, l_i in fli]))
-    spectrum = np.array(spectrum)
-    if e2f:
-        spectrum /= 40490.05867167
-    if not nnorm:
-        spectrum = spectrum / spectrum.max()
-    # Print spectrum in nm
-    print_spectrum(x, spectrum, fli)
-    # Print spectrum in eV
-    print_spectrum(xeV, spectrum, flieV)
-
-    """
-    Used for printing also the gauss bands of the
-    n-highest transitions
-    # Sort by f
-    fli_sorted = sorted(fli, key=lambda tpl: -tpl[0])
-    highest_fs = fli_sorted[:15]
-    print
-    x = np.arange(200, 600, 0.5)
-    highest_bands = list()
-    for f, l_i in highest_fs:
-        band = lambda l: gauss_uv_band(l, f, l_i)
-        calced_band = band(x)
-        calced_band = band(x) / calced_band.max() * f * 3
-        highest_bands.append(calced_band)
-        #for xi, ai in zip(x, calced_band):
-        #    print xi, ai
-        #print
-    highest_bands_headers = tuple(['"l_i = {} nm, f = {}"'.format(
-        l_i, f) for f, l_i in highest_fs])
-    headers = ('"l in nm"', "Sum") + highest_bands_headers
-    wargel = zip(x, spectrum, *highest_bands)
-    print tabulate(wargel, headers=headers, tablefmt="plain")
-    """
 
 
 def chunks(lst, n):
@@ -286,6 +202,30 @@ def as_theodore(excited_states, fn):
         handle.write(ren)
 
 
+def is_orca(text):
+    orca_re = "\* O   R   C   A \*"
+    return re.search(orca_re, text)
+
+def parse(fn):
+    with open(fn) as handle:
+        text = handle.read()
+
+    # Parse outputs
+    if args.file_name.endswith("escf.out"):
+        # TURBOMOLE escf
+        return turbo.parse_escf(text)
+    elif args.file_name.endswith("ricc2.out"):
+        # TURBOMOLE ricc2
+        return turbo.parse_ricc2(text)
+    elif is_orca(text):
+        return orca.parse_tddft(text)
+    else:
+        # Gaussian
+        return gaussian.parse_tddft(text)
+
+    return excited_states
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
             "Displays output from Gaussian-td-calculation,"
@@ -323,16 +263,18 @@ if __name__ == "__main__":
     parser.add_argument("--ci-coeff", dest="ci_coeff", type=float,
                         default=0.2, help="Only consider ci coefficients "
                         "not less than.")
-    parser.add_argument("--spectrum", dest="spectrum", type=float, nargs=2,
+    parser.add_argument("--spectrum", dest="spectrum", action="store_true",
                         help="Calculate the UV spectrum from the TD "
                         "calculation (FWHM = 0.4 eV).")
     parser.add_argument("--e2f", dest="e2f", action="store_true",
                         help="Used with spectrum. Converts the molecular "
                         "extinctions coefficients on the ordinate to "
                         "oscillator strengths.")
+    """
     parser.add_argument("--hi", dest="highlight_impulses", type=int,
                         nargs="+", help="List of excitations. Their "
                         "oscillator strength bars will be printed separatly.")
+    """
     parser.add_argument("--nnorm", dest="nnorm", default=False,
                         action="store_true",
                         help="Don't normalize the calculated spectrum.")
@@ -360,10 +302,11 @@ if __name__ == "__main__":
                         "format.")
     parser.add_argument("--theodore", action="store_true",
                         help="Output HTML with NTO-picture from THEOdore.")
-    parser.add_argument("--orca", action="store_true",
-                        help="Parse an ORCA-calculation.")
     parser.add_argument("--nosym", action="store_true",
                         help="Assign all excited states to the 'a' irrep.")
+    parser.add_argument("--plot", action="store_true",
+                        help="Plot the spectrum with matplotlib.")
+
     # Use the argcomplete module for autocompletion if it's available
     if "argcomplete" in sys.modules:
         parser.add_argument("file_name", metavar="fn",
@@ -373,23 +316,6 @@ if __name__ == "__main__":
         parser.add_argument("file_name", metavar="fn",
                             help="File to parse.")
     args = parser.parse_args()
-
-    """
-    # Try to look for csv file with MO names
-    # [root of args.file_name] + "_mos.csv"
-    root_file_name = os.path.splitext(args.file_name)[0]
-    look_for_csv_name = root_file_name + "_mos.csv"
-    if (not args.csv) and os.path.exists(look_for_csv_name):
-        args.csv = look_for_csv_name
-    # Load MO names from csv
-    verbose_mos = dict()
-    if args.csv:
-        with open(args.csv, "r") as csv_handle:
-            csv_reader = csv.reader(csv_handle, delimiter="\t")
-            for row in csv_reader:
-                id, mo_type = row
-                verbose_mos[int(id)] = mo_type
-    """
 
     try:
         mo_data_fn = "mos.json"
@@ -406,26 +332,15 @@ if __name__ == "__main__":
                         " in mos.json")
         verbose_mos = None
 
-    with open(args.file_name) as handle:
-        text = handle.read()
 
-    # Parse outputs
-    if args.file_name.endswith("escf.out"):
-        # TURBOMOLE escf
-        excited_states, mos = turbo.parse_escf(text)
-    elif args.file_name.endswith("ricc2.out"):
-        # TURBOMOLE ricc2
-        excited_states, mos = turbo.parse_ricc2(text)
-    elif args.orca:
-        excited_states, mos = orca.parse_tddft(text)
-    else:
-        # Gaussian
-        excited_states, mos = gaussian.parse_tddft(text)
+    excited_states = parse(args.file_name)
     for exc_state in excited_states:
         exc_state.calculate_contributions()
         exc_state.correct_backexcitations()
         exc_state.suppress_low_ci_coeffs(args.ci_coeff)
         exc_state.update_irreps()
+
+    spectrum = Spectrum(excited_states)
 
     if args.nosym:
         for es in excited_states:
@@ -437,10 +352,14 @@ if __name__ == "__main__":
 
     if args.spectrum:
         # Starting and ending wavelength of the spectrum to be calculated
-        start_l, end_l = args.spectrum
-        make_spectrum(excited_states, start_l, end_l, args.nnorm,
-                      args.highlight_impulses, args.e2f)
-        sys.exit()
+        in_nm, osc_nm = spectrum.nm
+        in_eV, osc_eV = spectrum.eV
+        out_fns = ["nm.spec", "osc_nm.spec", "eV.spec", "osc_eV.spec"]
+        for out_fn, spec in zip(out_fns, (in_nm, osc_nm, in_eV, osc_eV)):
+            np.savetxt(out_fn, spec)
+
+    if args.plot:
+        spectrum.plot_eV()
 
     if args.by_id:
         try:

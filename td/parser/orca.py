@@ -51,10 +51,4 @@ def parse_tddft(text):
                                         start_irrep=start_irrep,
                                         final_irrep=final_irrep)
 
-    return excited_states, ()
-
-if __name__ == "__main__":
-    fn = "/media/carpx/6faec0d1-44da-4572-8ad6-a0dd8e8a1c49/cm/runobpb_camb3lyp_cosmo.out"
-    with open(fn) as handle:
-        text = handle.read()
-    parse_tddft(text)
+    return excited_states

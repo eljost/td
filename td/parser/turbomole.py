@@ -22,17 +22,7 @@ def parse_ricc2(text):
     mo_contrib_re = "occ\. orb\..+?\%\s*\|(.+?)\s*norm"
     # Get the blocks containing the MO contributions for every state
     mo_contrib_blocks = re.findall(mo_contrib_re, text, re.DOTALL)
-    mo_contribs = list()
-    for moc in mo_contrib_blocks:
-        # Split at newline and drop first and last line
-        moc_lines = moc.strip().split("\n")[1:-1]
-        split = [re.sub("[\|\(\)]", "",  mol).split() for mol in moc_lines]
-        # Add orbital spin if we we have a closed shell wave function
-        for line in split:
-            if len(line) == 8:
-                line.insert(3, "a")
-                line.insert(7, "a")
-        mo_contribs.append(split)
+    mo_contribs.append(split)
 
     # When excited state properties are requested the lists
     # 'syms', 'spins', 'ees' will be twice as long as 'oscs'
@@ -68,7 +58,7 @@ def parse_ricc2(text):
                                         start_irrep=start_irrep,
                                         final_irrep=final_irrep)
 
-    return excited_states, mo_contribs
+    return excited_states
 
 
 def parse_escf(text):
@@ -100,7 +90,6 @@ def parse_escf(text):
     dcs_parsed = [dc_re.findall(exc) for exc in dcs]
 
     excited_states = list()
-    dom_contribs = list()
     for sym, ee, osc, dc in zip(syms, ees, oscs, dcs_parsed):
         id_, spin, spat = sym
         dE = ee * HARTREE2EV
@@ -124,10 +113,4 @@ def parse_escf(text):
                                         start_irrep=start_irrep,
                                         final_irrep=final_irrep)
 
-    return excited_states, dom_contribs
-
-if __name__ == "__main__":
-    fn = "/home/carpx/Code/td/logs/ricc2.out"
-    with open(fn) as handle:
-        text = handle.read()
-    parse_ricc2(text)
+    return excited_states
