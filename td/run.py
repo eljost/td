@@ -8,6 +8,7 @@ import itertools
 import logging
 import os
 import re
+import shutil
 import sys
 
 from jinja2 import Environment, FileSystemLoader
@@ -357,6 +358,8 @@ if __name__ == "__main__":
         out_fns = ["nm.spec", "osc_nm.spec", "eV.spec", "osc_eV.spec"]
         for out_fn, spec in zip(out_fns, (in_nm, osc_nm, in_eV, osc_eV)):
             np.savetxt(out_fn, spec)
+        gnuplot_tpl = os.path.join(THIS_DIR, "templates", "gnuplot.plt")
+        shutil.copy(gnuplot_tpl, "gnuplot.plt")
 
     if args.plot:
         spectrum.plot_eV()
