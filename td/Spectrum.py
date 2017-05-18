@@ -2,6 +2,8 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
+from peakdetect import peakdetect
+
 
 NM2EV = 1240.6691
 
@@ -53,7 +55,8 @@ class Spectrum:
             spectrum.append(np.sum([self.gauss_uv_band(l, osc, l_i)
                             for l_i, osc in osc_nm]))
         spectrum = np.array(spectrum)
-        in_nm = np.stack((x, spectrum), axis=-1)
+        spectrum_norm = spectrum / spectrum.max()
+        in_nm = np.stack((x, spectrum, spectrum_norm), axis=-1)
         return in_nm, osc_nm
 
         """
@@ -87,18 +90,50 @@ class Spectrum:
         print tabulate(wargel, headers=headers, tablefmt="plain")
         """
 
-    def plot_eV(self):
+    def plot_eV(self, with_peaks=False):
         in_eV, osc_eV = self.eV
+        xlabel = "E / eV"
+        self.plot(in_eV, osc_eV, xlabel, reverse_x=True,
+                  with_peaks=with_peaks)
+
+    def plot_nm(self, with_peaks=False):
+        in_nm, osc_nm = self.nm
+        xlabel = "E / nm"
+        self.plot(in_nm, osc_nm, xlabel, with_peaks=with_peaks)
+
+    def plot(self, conv_spectrum, osc, xlabel, reverse_x=False,
+             with_peaks=None):
         fig, ax1 = plt.subplots()
 
-        ax1.plot(in_eV[:,0], in_eV[:,1])
-        from_x, to_x = ax1.get_xlim()
-        ax1.set_xlim(to_x, from_x)
-        ax1.set_xlabel("E / eV")
+        ax1.plot(conv_spectrum[:,0], conv_spectrum[:,1])
+
+        if with_peaks:
+            peak_inds = self.get_peak_inds(conv_spectrum)
+            peaks = conv_spectrum[peak_inds]
+            for i, peak in enumerate(peaks):
+                xytext = peak[:2] * (1, 1.05)
+                ax1.annotate("{}".format(i), xy=peak[:2], xytext=xytext,
+                             horizontalalignment="center")
+            ax1.plot(peaks[:,0], peaks[:,1], "ro")
+
+        if reverse_x:
+            from_x, to_x = ax1.get_xlim()
+            ax1.set_xlim(to_x, from_x)
+        ax1.set_xlabel(xlabel)
         ax1.set_ylabel("ε / mol cm⁻¹ l⁻¹")
 
         ax2 = ax1.twinx()
-        ax2.stem(osc_eV[:,0], osc_eV[:,1], markerfmt=" ", basefmt=" ")
+        ax2.stem(osc[:,0], osc[:,1], markerfmt=" ", basefmt=" ")
+
+        from_y2, to_y2 = ax2.get_ylim()
+        to_y2 = max(to_y2, 0.5)
+        ax2.set_ylim(from_y2, to_y2)
         ax2.set_ylabel("f")
 
         plt.show()
+
+    def get_peak_inds(self, conv_spectrum):
+        conv_spectrum_ys = conv_spectrum[:,1]
+        max_peaks, min_peaks = peakdetect(conv_spectrum_ys, lookahead=50)
+        return np.array(max_peaks)[:,0].astype(int)
+

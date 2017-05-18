@@ -27,11 +27,12 @@
     {% for state in states %}
     <div class="state">
         <h2>
-            S<sub>{{ state.id }}</sub>,
+            S<sub>{{ state.id_sorted }}</sub>,
             {{ state.spat }},
             {{ "%.1f" | format(state.l) }} nm,
             {{ "%.2f" | format(state.dE) }} eV,
             f={{ "%.4f" | format(state.f) }}
+            (S<sub>{{ state.id }}</sub> original)
         </h2>
         {% for i in range((nto_dict[(state.id, state.irrep)]|length // 2)+1) %}
         <div>

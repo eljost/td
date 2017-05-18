@@ -11,6 +11,7 @@ from td.MOTransition import MOTransition
 class ExcitedState:
     def __init__(self, id, spin, spat, dE, l, f, s2):
         self.id = int(id)
+        self.id_sorted = self.id
         self.spin = spin
         self.spat = spat
         self.dE = dE
@@ -30,6 +31,7 @@ class ExcitedState:
     def as_list(self, attrs=None):
         if not attrs:
             attrs = ("id",
+                     "id_sorted",
                      "spin",
                      "spat",
                      "dE",
