@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import logging
 import math
 import re
 
@@ -78,6 +79,9 @@ class ExcitedState:
             mo_trans.contrib = contrib
 
     def correct_backexcitations(self):
+        logging.warning("Only the contribution in % gets corrected, "
+                        "for back-excitations, not the CI-coefficient."
+        )
         # Check if there are any back-excitations, e.g.
         # 89B <- 90B
         back_transitions = [bt for bt in self.mo_transitions
@@ -92,6 +96,7 @@ class ExcitedState:
                 assert(len(trans_to_correct) == 1)
                 trans_to_correct = trans_to_correct[0]
                 # Correct contribution of trans_to_correct
+
                 trans_to_correct.contrib -= bt.contrib
 
     def print_mo_transitions(self, verbose_mos):
