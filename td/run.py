@@ -11,10 +11,10 @@ import re
 import shutil
 import sys
 
-from jinja2 import Environment, FileSystemLoader
 import numpy as np
 import simplejson as json
 
+from helper_funcs import chunks, THIS_DIR
 from td.ExcitedState import ExcitedState
 from td.export import *
 import td.parser.gaussian as gaussian
@@ -28,35 +28,47 @@ try:
 except ImportError:
     pass
 
-THIS_DIR = os.path.dirname(os.path.realpath(__file__))
-
-
-def chunks(lst, n):
-    for i in range(0, len(lst), n):
-        yield lst[i:i+n]
-
 
 def is_orca(text):
     orca_re = "\* O   R   C   A \*"
     return re.search(orca_re, text)
 
 
-def determine_program(fn):
+def set_ntos(excited_states, ntos):
+    for es, (state, nto_contribs) in zip(excited_states, ntos):
+        assert(es.id == state)
+        es.mo_transitions = list()
+        for from_nto, from_spin, to_nto, to_spin, nto_weight in nto_contribs:
+            es.add_mo_transition(start_mo=from_nto,
+                                 to_or_from="->",
+                                 final_mo=to_nto,
+                                 ci_coeff=0,
+                                 start_spin=from_spin,
+                                 final_spin=to_spin,
+                                 contrib=nto_weight)
+    return excited_states
+
+
+def determine_program(args):
+    fn = args.file_name
     with open(fn) as handle:
         text = handle.read()
 
     # Parse outputs
     if fn.endswith("escf.out"):
         # TURBOMOLE escf
-        return turbo.parse_escf(text)
+        excited_states = turbo.parse_escf(text)
     elif fn.endswith("ricc2.out"):
         # TURBOMOLE ricc2
-        return turbo.parse_ricc2(text)
+        excited_states = turbo.parse_ricc2(text)
     elif is_orca(text):
-        return orca.parse_tddft(text)
+        excited_states = orca.parse_tddft(text)
+        if args.ntos:
+            ntos = orca.parse_ntos(text)
+            excited_states = set_ntos(excited_states, ntos)
     else:
         # Gaussian
-        return gaussian.parse_tddft(text)
+        excited_states = gaussian.parse_tddft(text)
 
     return excited_states
 
@@ -147,6 +159,8 @@ def parse_args(args):
                         help="Plot the spectrum with matplotlib.")
     parser.add_argument("--peaks", action="store_true", default=False,
                         help="Detect peaks.")
+    parser.add_argument("--ntos", action="store_true", default=False,
+                        help="Parse NTOs from an ORCA log.")
 
     # Use the argcomplete module for autocompletion if it's available
     if "argcomplete" in sys.modules:
@@ -180,7 +194,8 @@ def run():
         verbose_mos = None
 
 
-    excited_states = determine_program(args.file_name)
+    excited_states = determine_program(args)
+    
     for exc_state in excited_states:
         exc_state.calculate_contributions()
         exc_state.correct_backexcitations()
@@ -198,9 +213,9 @@ def run():
         excited_states = excited_states[:args.only_first]
 
     if args.plot == "eV":
-        spectrum.plot_eV(with_peaks=args.peaks)
+        spectrum.plot_eV(title=args.file_name, with_peaks=args.peaks)
     elif args.plot == "nm":
-        spectrum.plot_nm(with_peaks=args.peaks)
+        spectrum.plot_nm(title=args.file_name, with_peaks=args.peaks)
 
 
     if args.by_id:
@@ -258,15 +273,6 @@ def run():
     for i, es in enumerate(excited_states, 1):
         es.id_sorted = i
 
-    """
-    # Sorting by energy is the default.
-    else:
-        excited_states = sorted(excited_states,
-                                key=lambda exc_state: exc_state.dE)
-        # Relabel the states from 1 to len(excited_states)
-        for i, es in enumerate(excited_states, 1):
-            es.id = i
-    """
     # Only show excitations in specified wavelength-range
     if args.range:
         # Only lower threshold specified (energy wise)

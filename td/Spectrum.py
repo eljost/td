@@ -90,20 +90,22 @@ class Spectrum:
         print tabulate(wargel, headers=headers, tablefmt="plain")
         """
 
-    def plot_eV(self, with_peaks=False):
+    def plot_eV(self, title="", with_peaks=False):
         in_eV, osc_eV = self.eV
-        xlabel = "E / eV"
-        self.plot(in_eV, osc_eV, xlabel, reverse_x=True,
+        unit = "eV"
+        self.plot(in_eV, osc_eV, unit, title=title, reverse_x=True,
                   with_peaks=with_peaks)
 
-    def plot_nm(self, with_peaks=False):
+    def plot_nm(self, title="", with_peaks=False):
         in_nm, osc_nm = self.nm
-        xlabel = "E / nm"
-        self.plot(in_nm, osc_nm, xlabel, with_peaks=with_peaks)
+        unit = "nm"
+        self.plot(in_nm, osc_nm, unit, title=title, with_peaks=with_peaks)
 
-    def plot(self, conv_spectrum, osc, xlabel, reverse_x=False,
+    def plot(self, conv_spectrum, osc, unit, title="", reverse_x=False,
              with_peaks=None):
         fig, ax1 = plt.subplots()
+        fig.suptitle(title)
+        xlabel = "E / {}".format(unit)
 
         ax1.plot(conv_spectrum[:,0], conv_spectrum[:,1])
 
@@ -111,6 +113,9 @@ class Spectrum:
             peak_inds = self.get_peak_inds(conv_spectrum)
             peaks = conv_spectrum[peak_inds]
             for i, peak in enumerate(peaks):
+                energy, epsilon = peak[:2]
+                print("{:2d}:\tλ={:5.1f} {}, ε={:6f}".format(i, energy,
+                                                             unit, epsilon))
                 xytext = peak[:2] * (1, 1.05)
                 ax1.annotate("{}".format(i), xy=peak[:2], xytext=xytext,
                              horizontalalignment="center")

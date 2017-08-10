@@ -44,10 +44,9 @@ class ExcitedState:
                           start_spin="α", final_spin="α",
                           contrib=0.0,
                           start_irrep="a", final_irrep="a"):
-        if not start_spin:
-            start_spin = "alpha"
-        if not final_spin:
-            final_spin = "alpha"
+        start_spin = "α" if (start_spin == "a") else "β"
+        final_spin = "α" if (final_spin == "a") else "β"
+
         self.mo_transitions.append(MOTransition(
             start_mo, to_or_from, final_mo, ci_coeff,
             contrib, start_spin, final_spin, start_irrep, final_irrep)
@@ -162,4 +161,4 @@ class ExcitedState:
     """
 
     def __str__(self):
-        print("#{0} {1} eV f={2}").format(self.id, self.dE, self.f)
+        return "#{0} {1} eV f={2}".format(self.id, self.dE, self.f)

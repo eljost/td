@@ -52,3 +52,33 @@ def parse_tddft(text):
                                         final_irrep=final_irrep)
 
     return excited_states
+
+
+def parse_nto_block(text):
+    state_re = "STATE\s*(\d+)"
+    state = int(re.search(state_re, text).groups()[0])
+    nto_contrib_re = "(\d+)([ab])\s*->\s*(\d+)([ab])\s*:\s*n=\s*([\d\.]+)"
+    nto_contribs = re.findall(nto_contrib_re, text)
+    nto_contribs = [(int(from_nto), from_spin,
+                     int(to_nto), to_spin,
+                     float(nto_weight))
+                    for from_nto, from_spin, to_nto, to_spin, nto_weight
+                    in nto_contribs]
+    return state, nto_contribs
+
+
+def parse_ntos(text):
+    nto_block_re = "(NATURAL TRANSITION ORBITALS FOR STATE.+?-+.+?-----)"
+    nto_blocks = re.findall(nto_block_re, text, re.DOTALL)
+    parsed_nto_blocks = [parse_nto_block(ntob) for ntob in nto_blocks]
+    return parsed_nto_blocks
+
+if __name__ == "__main__":
+    fn = "11_b3lyp35_cpcm_120_tddft.out"
+    fn = "/scratch/nbdcorm/koligand/11_b3lyp35_cpcm_120_tddft/11_b3lyp35_cpcm_120_tddft.out"
+    with open(fn) as handle:
+        text = handle.read()
+    parsed_nto_blocks = parse_ntos(text)
+    states, nto_contribs = zip(*parsed_nto_blocks)
+    print(states[0])
+    print(nto_contribs[0])
