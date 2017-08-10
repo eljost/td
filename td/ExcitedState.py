@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 import math
 import re
 
 from td.helper_funcs import IRREPS_REPL
 from td.MOTransition import MOTransition
-
 
 class ExcitedState:
     def __init__(self, id, spin, spat, dE, l, f, s2):

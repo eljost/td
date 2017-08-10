@@ -14,13 +14,13 @@ import sys
 import numpy as np
 import simplejson as json
 
-from helper_funcs import chunks, THIS_DIR
+from td.helper_funcs import chunks, THIS_DIR
 from td.ExcitedState import ExcitedState
 from td.export import *
 import td.parser.gaussian as gaussian
 import td.parser.orca as orca
 import td.parser.turbomole as turbo
-from Spectrum import Spectrum
+from td.Spectrum import Spectrum
 
 # Optional modules
 try:
@@ -216,7 +216,6 @@ def run():
         spectrum.plot_eV(title=args.file_name, with_peaks=args.peaks)
     elif args.plot == "nm":
         spectrum.plot_nm(title=args.file_name, with_peaks=args.peaks)
-
 
     if args.by_id:
         try:

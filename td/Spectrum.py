@@ -2,8 +2,8 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-from peakdetect import peakdetect
 
+from td.peakdetect import peakdetect
 
 NM2EV = 1240.6691
 

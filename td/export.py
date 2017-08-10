@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
+import logging
 import os
 import re
 import sys
 
 from jinja2 import Environment, FileSystemLoader
 
-from helper_funcs import chunks, THIS_DIR
+from td.helper_funcs import chunks, THIS_DIR
 
 try:
     from docx import Document

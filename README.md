@@ -1,10 +1,11 @@
-# td.py
+# td
 
-Parser for excited state calculations done with **Gaussian 09** (*td* keyword) or **TURBOMOLE** (*escf* and *ricc2* module).
+Parser for excited state calculations done with **Gaussian 09** (*td* keyword), **TURBOMOLE** (*escf* and *ricc2* module) and **ORCA** calculations.
 
-By default the script expects **Gaussian 09** logs, but when the supplied filename ends with *escf.out* or *ricc2* it will be parsed as **TURBOMOLE**-log of appropriate type.
+The script tries to determine the program type from the supplied log file. For TURBOMOLE
+calcualtions it expects *escf.out* or *ricc2.out* files.
 
-The script uses a slightly modified version of Sergey Astanin's **tabulate** module (https://bitbucket.org/astanin/python-tabulate). Thanks to him.
+The script uses a slightly modified version of Sergey Astanin's **tabulate** module (https://bitbucket.org/astanin/python-tabulate) and **peakdetect.py** Sixten Bergman. Thanks to them.
 
 ## Installation
 td.py requires:
@@ -12,6 +13,8 @@ td.py requires:
     Python 3.x
     numpy
     simplejson
+    scipy
+    matplotlib
     
 Optional packages are:
 

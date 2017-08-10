@@ -72,13 +72,3 @@ def parse_ntos(text):
     nto_blocks = re.findall(nto_block_re, text, re.DOTALL)
     parsed_nto_blocks = [parse_nto_block(ntob) for ntob in nto_blocks]
     return parsed_nto_blocks
-
-if __name__ == "__main__":
-    fn = "11_b3lyp35_cpcm_120_tddft.out"
-    fn = "/scratch/nbdcorm/koligand/11_b3lyp35_cpcm_120_tddft/11_b3lyp35_cpcm_120_tddft.out"
-    with open(fn) as handle:
-        text = handle.read()
-    parsed_nto_blocks = parse_ntos(text)
-    states, nto_contribs = zip(*parsed_nto_blocks)
-    print(states[0])
-    print(nto_contribs[0])

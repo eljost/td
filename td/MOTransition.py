@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 
 class MOTransition:
     def __init__(self, start_mo, to_or_from, final_mo, ci_coeff,
