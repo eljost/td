@@ -3,9 +3,9 @@
 Parser for excited state calculations done with **Gaussian 09** (*td* keyword), **TURBOMOLE** (*escf* and *ricc2* module) and **ORCA** calculations.
 
 The script tries to determine the program type from the supplied log file. For TURBOMOLE
-calcualtions it expects *escf.out* or *ricc2.out* files.
+calculations it expects *escf.out* or *ricc2.out* file names.
 
-The script uses a slightly modified version of Sergey Astanin's **tabulate** module (https://bitbucket.org/astanin/python-tabulate) and **peakdetect.py** Sixten Bergman. Thanks to them.
+The script uses a slightly modified version of Sergey Astanin's **tabulate** module (https://bitbucket.org/astanin/python-tabulate) and **peakdetect** from Sixten Bergman. Thanks to them.
 
 ## Installation
 td requires:
@@ -28,7 +28,7 @@ Clone this repository with ``git clone https://github.com/eljost/td.git`` into `
 and add the following paths to your environment variables:
 
     [path]/td/bin to $PATH
-    [path]/td to PYTHONPATH
+    [path]/td to $PYTHONPATH
 
 
 ## Usage
@@ -36,7 +36,7 @@ Display the help message with all available commands:
 
 	td -h
 
-Common usage examples are the generation of broadened spectra from calculated excitation energies and oscillator strenghts according to http://www.gaussian.com/g_whitepap/tn_uvvisplot.htm and this paper https://dx.doi.org/10.1002/chir.20733. Spectra can be generated in two ways: Not normalized (ε in l mol⁻¹ cm⁻¹) or normalized with the brightest  peak set to 1 (ε/ε_max). The spectrum is printed to STDOUT.
+Common usage examples are the generation of broadened spectra from calculated excitation energies and oscillator strenghts according to http://dev.gaussian.com/uvvisplot/ and this paper https://dx.doi.org/10.1002/chir.20733. Spectra can be generated in two ways: Not normalized (ε in l mol⁻¹ cm⁻¹) or normalized with the brightest  peak set to 1 (ε/ε_max). The spectrum is printed to STDOUT.
 
 ### Verbose MO names 
 Verbose MO names can optionally be loaded from a *mos.json* file with the following format:
@@ -49,6 +49,8 @@ Verbose MO names can optionally be loaded from a *mos.json* file with the follow
 		
 		! The last entry must NOT have a comma at the end
 	}
+
+The *mos.json* file must reside next to the parsed log file.
 
 ### Spectrum generation
 
@@ -69,7 +71,7 @@ When used with the argument  *\-\-e2f* the molecular extinction coefficients on 
 
 ### Filtering
 
-To investigate a **Gaussian 09** excited state optimization it may be useful to split the output in chunks, where chunks should equal the number of calculated roots at every step of the optimization:
+To investigate a **Gaussian 09** excited state optimization it may be useful to split the output in chunks, where chunks should correspond to the number of calculated roots at every step of the optimization:
 
 	./td [fn] --chunks [roots]
 
