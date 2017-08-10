@@ -64,7 +64,7 @@ class ExcitedState:
         )
 
     def is_singlet(self):
-        return self.spin.lower() == "Singlet".lower()
+        return self.mult == 1
 
     def calculate_contributions(self):
         #import pdb; pdb.set_trace()
@@ -83,14 +83,16 @@ class ExcitedState:
         back_transitions = [bt for bt in self.mo_transitions
                             if bt.to_or_from == "<-"]
         for bt in back_transitions:
-            final_mo = bt.start_mo
-            start_mo = bt.final_mo
             # Find corresponding transition from final_mo -> start_mo
             trans_to_correct = [t for t in self.mo_transitions
-                                if (t.start_mo == final_mo and
-                                    t.final_mo == start_mo)][0]
-            # Correct contribution of trans_to_correct
-            trans_to_correct.contrib -= bt.contrib
+                                if (t.start_mo == bt.start_mo and
+                                    t.final_mo == bt.final_mo and
+                                    t.to_or_from == "->")]
+            if trans_to_correct:
+                assert(len(trans_to_correct) == 1)
+                trans_to_correct = trans_to_correct[0]
+                # Correct contribution of trans_to_correct
+                trans_to_correct.contrib -= bt.contrib
 
     def print_mo_transitions(self, verbose_mos):
         for mot in self.mo_transitions:

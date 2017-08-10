@@ -16,6 +16,12 @@ TRS_LINE = r"([\dAB]+)\s*(->|<-)\s*([\dAB]+)\s*\s+([0-9\.-]+)"
 
 
 def parse_tddft(text):
+    # Determine multiplicity
+    charge_mult_re = "\s*".join("Charge = ([\+\-\d]+) Multiplicity = (\d+)".split())
+    _, mult = re.search(charge_mult_re, text).groups()
+    mult = int(mult)
+    assert(mult >= 1)
+
     lines = text.split("\n")
     excited_states = list()
 
@@ -37,6 +43,7 @@ def parse_tddft(text):
         m_obj = re.match(EXC_LINE, line)
         if m_obj:
             excited_state = ExcitedState(*conv(m_obj.groups(), "issffff"))
+            excited_state.mult = mult
             excited_states.append(excited_state)
             matched_exc_state = True
 
