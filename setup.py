@@ -29,6 +29,8 @@ setup(
         "python-docx",
         "argcomplete",
         "jinja2",
+        "python-docx",
+        "argcomplete",
     ],
     entry_points={
         "console_scripts": [

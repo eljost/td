@@ -8,28 +8,10 @@ calculations it expects *escf.out* or *ricc2.out* file names.
 The script uses a slightly modified version of Sergey Astanin's **tabulate** module (https://bitbucket.org/astanin/python-tabulate) and **peakdetect** from Sixten Bergman. Thanks to them.
 
 ## Installation
-td requires:
+Clone this repository with ``git clone https://github.com/eljost/td.git`` and run
+``python setup.py install`` in the cloned directory.
 
-    Python 3.x
-    numpy
-    simplejson
-    scipy
-    matplotlib
-    
-Optional packages are:
-
-	python-docx
-	argcomplete
-	
 The **argcomplete** module (https://pypi.python.org/pypi/argcomplete) has to be configured separately. When using **argcomplete** *td* looks for files with *.out* and *.log* extensions.
-
-## Installation
-Clone this repository with ``git clone https://github.com/eljost/td.git`` into ``[path]``
-and add the following paths to your environment variables:
-
-    [path]/td/bin to $PATH
-    [path]/td to $PYTHONPATH
-
 
 ## Usage
 Display the help message with all available commands:
