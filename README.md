@@ -50,6 +50,9 @@ td exports the spectrum ε(x) for x in two different units: *nm* and *eV*. The f
 When used with the argument  *\-\-e2f* the molecular extinction coefficients on the ordinate will be converted to an oscillator strength scale.
 
 	./td [fn] --spectrum [from in nm] [to in nm] --e2f --nnorm > [outfn]
+	
+#### Dealing with different multiplicities
+A constant shift in a.u. can be added to the excitation energies with `--enoffset`. This may be useful when one has a calculation with triplet-triplet excitation energies and wants to relate these energies to the corresponding singlet groundstate energy. Additionally all oscillator strengths can be zeroed with `--zeroosc`.
 
 ### Filtering
 
