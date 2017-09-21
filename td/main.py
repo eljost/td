@@ -14,7 +14,7 @@ import sys
 import numpy as np
 import simplejson as json
 
-from td.helper_funcs import chunks, THIS_DIR
+from td.helper_funcs import chunks, THIS_DIR, EV2NM, HARTREE2EV
 from td.ExcitedState import ExcitedState
 from td.export import *
 import td.parser.gaussian as gaussian
@@ -161,6 +161,12 @@ def parse_args(args):
                         help="Detect peaks.")
     parser.add_argument("--ntos", action="store_true", default=False,
                         help="Parse NTOs from an ORCA log.")
+    parser.add_argument("--enoffset", type=float, default=None,
+                        help="Add an energy offset in a.u. that gets added to "
+                        "all excitation energies, e.g. a singlet-triplet "
+                        "difference.")
+    parser.add_argument("--zeroosc", action="store_true", help="Set all "
+                        "oscillator strengths to zero.")
 
     # Use the argcomplete module for autocompletion if it's available
     if "argcomplete" in sys.modules:
@@ -195,6 +201,10 @@ def run():
 
 
     excited_states = determine_program(args)
+
+    logging.warning("Only the contribution in % gets corrected, "
+                    "for back-excitations, not the CI-coefficient."
+    )
     
     for exc_state in excited_states:
         exc_state.calculate_contributions()
@@ -225,6 +235,19 @@ def run():
         except IndexError:
             print("Excited state with id #{} not found.".format(args.by_id))
         sys.exit()
+
+    if args.enoffset:
+        enoffset_eV = HARTREE2EV * args.enoffset
+        logging.warning(f"Adding an energy offset of {args.enoffset:.4f} a.u. "
+                         "({enoffset_eV:.2f} eV)!")
+        for exc_state in excited_states:
+            exc_state.dE += enoffset_eV
+            exc_state.l = EV2NM / exc_state.dE
+
+    if args.zeroosc:
+        logging.warning(f"Zeroing all oscillator strengths!")
+        for exc_state in excited_states:
+            exc_state.f = 0.0
 
     """
     !

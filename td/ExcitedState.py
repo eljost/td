@@ -79,9 +79,6 @@ class ExcitedState:
             mo_trans.contrib = contrib
 
     def correct_backexcitations(self):
-        logging.warning("Only the contribution in % gets corrected, "
-                        "for back-excitations, not the CI-coefficient."
-        )
         # Check if there are any back-excitations, e.g.
         # 89B <- 90B
         back_transitions = [bt for bt in self.mo_transitions
