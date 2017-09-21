@@ -16,13 +16,22 @@ def parse_ricc2(text):
     ees = [float(ee) for ee in re.findall(exc_energy_re, text)]
 
     #osc_strength_re = "\(mixed gauge\)\s*:\s*([\d\.]+)"
-    osc_strength_re = "\(length gauge\)\s*:\s*([\d\.]+)"
+    osc_strength_re = "oscillator strength.+?length gauge\)\s*:\s*([\d\.]+)"
     oscs = [float(osc) for osc in re.findall(osc_strength_re, text)]
 
+    mo_contribs = list()
     mo_contrib_re = "occ\. orb\..+?\%\s*\|(.+?)\s*norm"
     # Get the blocks containing the MO contributions for every state
     mo_contrib_blocks = re.findall(mo_contrib_re, text, re.DOTALL)
-    mo_contribs.append(split)
+    for mcb in mo_contrib_blocks:
+        block_lines = mcb.strip().split("\n")[1:-1]
+        split_lines = [re.sub("[\|\(\)]", "",  mol).split()
+                       for mol in block_lines]
+        for sl in split_lines:
+            if len(sl) == 8:
+                sl.insert(3, "a")
+                sl.insert(7, "a")
+        mo_contribs.append(split_lines)
 
     # When excited state properties are requested the lists
     # 'syms', 'spins', 'ees' will be twice as long as 'oscs'
@@ -35,6 +44,7 @@ def parse_ricc2(text):
         spins = spins[first_half]
         ees = ees[first_half]
 
+    #import pdb; pdb.set_trace()
     assert(len(syms) == len(spins) == len(ees) == len(oscs) ==
            len(mo_contribs))
 
