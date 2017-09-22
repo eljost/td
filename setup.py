@@ -22,15 +22,14 @@ setup(
     packages=find_packages(),
     package_data=package_data,
     install_requires=[
-        "numpy",
-        "scipy",
-        "matplotlib",
-        "simplejson",
-        "python-docx",
         "argcomplete",
         "jinja2",
+        "matplotlib",
+        "numpy",
+        "pandas",
         "python-docx",
-        "argcomplete",
+        "scipy",
+        "simplejson",
     ],
     entry_points={
         "console_scripts": [

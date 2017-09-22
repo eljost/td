@@ -6,6 +6,7 @@ import re
 import sys
 
 from jinja2 import Environment, FileSystemLoader
+import pandas as pd
 
 from td.helper_funcs import chunks, THIS_DIR
 
@@ -23,6 +24,7 @@ __all__ = [
             "as_tiddly_table",
             "as_theodore",
             "as_booktabs",
+            "as_dataframe",
 ]
 
 def print_table(excited_states):
@@ -190,3 +192,10 @@ def as_booktabs(excited_states):
     nm = ["{:.1f}".format(_) for _ in nm]
     for_booktabs = zip(nr, sym, eV, nm, f)
     print(tabulate(for_booktabs, tablefmt="latex_booktabs"))
+
+
+def as_dataframe(excited_states):
+    attrs = ("id", "l", "dE", "f")
+    as_lists = [es.as_list(attrs) for es in excited_states]
+    df = pd.DataFrame(as_lists, columns=attrs)
+    return df

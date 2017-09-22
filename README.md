@@ -73,3 +73,4 @@ Several export-formats are available:
 | raw | \-\-raw | Export without any formatting. |
 | docx | \-\-docx | Export to an .docx-document. Needs python-docx-module. |
 | tiddlywiki | \-\-tiddly | Export as a tiddlywiki-table. |
+| csv | \-\-csv | Export as CSV. |

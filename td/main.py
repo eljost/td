@@ -49,8 +49,7 @@ def set_ntos(excited_states, ntos):
     return excited_states
 
 
-def determine_program(args):
-    fn = args.file_name
+def determine_program(fn, orca_ntos):
     with open(fn) as handle:
         text = handle.read()
 
@@ -63,7 +62,7 @@ def determine_program(args):
         excited_states = turbo.parse_ricc2(text)
     elif is_orca(text):
         excited_states = orca.parse_tddft(text)
-        if args.ntos:
+        if orca_ntos:
             ntos = orca.parse_ntos(text)
             excited_states = set_ntos(excited_states, ntos)
     else:
@@ -165,8 +164,10 @@ def parse_args(args):
                         help="Add an energy offset in a.u. that gets added to "
                         "all excitation energies, e.g. a singlet-triplet "
                         "difference.")
-    parser.add_argument("--zeroosc", action="store_true", help="Set all "
-                        "oscillator strengths to zero.")
+    parser.add_argument("--zeroosc", action="store_true",
+                        help="Set all oscillator strengths to zero.")
+    parser.add_argument("--csv", action="store_true",
+                        help="Export excited state data as .csv.")
 
     # Use the argcomplete module for autocompletion if it's available
     if "argcomplete" in sys.modules:
@@ -200,7 +201,9 @@ def run():
         verbose_mos = None
 
 
-    excited_states = determine_program(args)
+    fn = args.file_name
+    fn_root = os.path.splitext(fn)[0]
+    excited_states = determine_program(fn, args.ntos)
 
     logging.warning("Only the contribution in % gets corrected, "
                     "for back-excitations, not the CI-coefficient."
@@ -350,6 +353,11 @@ def run():
         as_tiddly_table(excited_states, verbose_mos)
     if args.theodore:
         as_theodore(excited_states, args.file_name)
+    if args.csv:
+        csv_fn = f"{fn_root}.csv"
+        df = as_dataframe(excited_states)
+        df.to_csv(csv_fn, index=False)
+        logging.info(f"Exported parsed data to {csv_fn}.")
     if args.spectrum:
         # Starting and ending wavelength of the spectrum to be calculated
         in_nm, osc_nm = spectrum.nm
