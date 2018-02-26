@@ -72,3 +72,9 @@ def parse_ntos(text):
     nto_blocks = re.findall(nto_block_re, text, re.DOTALL)
     parsed_nto_blocks = [parse_nto_block(ntob) for ntob in nto_blocks]
     return parsed_nto_blocks
+
+
+def parse_final_sp_energy(text):
+    sp_energy_re = "FINAL SINGLE POINT ENERGY\s*([\d\-\.]+)"
+    sp_energy = float(re.search(sp_energy_re, text)[1])
+    return sp_energy

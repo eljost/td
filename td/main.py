@@ -6,6 +6,7 @@
 import argparse
 import itertools
 import logging
+import matplotlib.pyplot as plt
 import os
 import re
 import shutil
@@ -49,6 +50,7 @@ def set_ntos(excited_states, ntos):
     return excited_states
 
 
+"""
 def determine_program(fn, orca_ntos):
     with open(fn) as handle:
         text = handle.read()
@@ -70,6 +72,22 @@ def determine_program(fn, orca_ntos):
         excited_states = gaussian.parse_tddft(text)
 
     return excited_states
+"""
+
+
+def get_parser(fn, text):
+    # TURBOMOLE escf
+    if fn.endswith("escf.out"):
+        return turbo.parse_escf
+    # TURBOMOLE ricc2
+    elif fn.endswith("ricc2.out"):
+        return turbo.parse_ricc2
+    # ORCA TDDFT
+    elif is_orca(text):
+        return orca.parse_tddft
+    # Assume Gaussian otherwise
+    else:
+        return gaussian.parse_tddft
 
 
 def logs_completer(prefix, **kwargs):
@@ -79,8 +97,7 @@ def logs_completer(prefix, **kwargs):
 
 def parse_args(args):
     parser = argparse.ArgumentParser(
-            "Displays output from Gaussian-td-calculation,"
-            " sorted by oscillator strength f."
+            "Displays output from excited state calculations."
     )
 
     parser.add_argument("--show", metavar="n", type=int,
@@ -168,6 +185,8 @@ def parse_args(args):
                         help="Set all oscillator strengths to zero.")
     parser.add_argument("--csv", action="store_true",
                         help="Export excited state data as .csv.")
+    parser.add_argument("--boltzmann", nargs="+",
+                        help="Create a boltzmann averaged spectrum")
 
     # Use the argcomplete module for autocompletion if it's available
     if "argcomplete" in sys.modules:
@@ -178,6 +197,71 @@ def parse_args(args):
         parser.add_argument("file_name", metavar="fn",
                             help="File to parse.")
     return parser.parse_args(args)
+
+
+def read_spectrum(args, fn):
+    with open(fn) as handle:
+        text = handle.read()
+    parser = get_parser(fn, text)
+    excited_states = parser(text)
+    if args.ntos:
+        ntos = orca.parse_ntos(text)
+        excited_states = set_ntos(excited_states, ntos)
+    gs_energy = None
+    if args.boltzmann:
+        gs_energy = orca.parse_final_sp_energy(text)
+
+    logging.warning("Only the contribution in % gets corrected, "
+                    "for back-excitations, not the CI-coefficient."
+    )
+
+    for exc_state in excited_states:
+        exc_state.calculate_contributions()
+        exc_state.correct_backexcitations()
+        exc_state.suppress_low_ci_coeffs(args.ci_coeff)
+        exc_state.update_irreps()
+
+    return Spectrum(excited_states, gs_energy=gs_energy)
+
+
+def boltzmann_averaging(spectra, temperature=293.15):
+    gs_energies = np.array([spectrum.gs_energy for spectrum in spectra],
+                           dtype=np.float64)
+    gs_energies -= gs_energies.min()
+    gs_energies_joule = gs_energies * 4.35974465e-18
+
+    # Use the same nanometer range for all spectra
+    nm_ranges = np.array([spectrum.nm_range for spectrum in spectra])
+    nm_min = nm_ranges[:,0].min()
+    nm_max = nm_ranges[:,1].max()
+    for spectrum in spectra:
+        spectrum.nm_range = np.array((nm_min, nm_max))
+
+    # kT
+    # k = 1.38064852 × 10-23 J/K
+    k = 1.38064852e-23
+    kT = k*temperature
+    # Determine weights
+    weights = np.exp(-gs_energies_joule / kT)
+    weights /= sum(weights)
+    spec_eV, osc_eV = zip(*[spectrum.eV for spectrum in spectra])
+    spec_eV = np.array(spec_eV)
+    all_ys = spec_eV[:,:,1] * weights[:,None]
+    ys = all_ys.sum(axis=0)
+    xs = spec_eV[0,:,0]
+    spec = np.stack((xs, ys))
+
+    fig, ax = plt.subplots()
+    fig.suptitle(f"{len(spectra)} spectra, Boltzmann average, T = {temperature} K")
+    for y in all_ys:
+        ax.plot(xs, y)
+    ax.plot(*spec)
+    ax.set_xlabel("E / eV")
+    ax.set_ylabel("ε / l mol⁻¹ cm⁻¹")
+    #fig.tight_layout()
+    plt.show()
+    return fig, ax, spec
+
 
 def run():
     args = parse_args(sys.argv[1:])
@@ -200,9 +284,16 @@ def run():
                         " in mos.json")
         verbose_mos = None
 
+    if args.boltzmann:
+        spectra = [read_spectrum(args, fn) for fn in args.boltzmann]
+        boltz_spectrum = boltzmann_averaging(spectra)
+        return
 
     fn = args.file_name
     fn_root = os.path.splitext(fn)[0]
+    spectrum = read_spectrum(args, fn)
+    excited_states = spectrum.excited_states
+    """
     excited_states = determine_program(fn, args.ntos)
 
     logging.warning("Only the contribution in % gets corrected, "
@@ -216,6 +307,7 @@ def run():
         exc_state.update_irreps()
 
     spectrum = Spectrum(excited_states)
+    """
 
     if args.nosym:
         for es in excited_states:
