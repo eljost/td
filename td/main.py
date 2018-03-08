@@ -134,6 +134,8 @@ def parse_args(args):
     parser.add_argument("--spectrum", dest="spectrum", action="store_true",
                         help="Calculate the UV spectrum from the TD "
                         "calculation (FWHM = 0.4 eV).")
+    parser.add_argument("--savenm", action="store_true",
+                        help="Export convoluted spectrum in nm.")
     parser.add_argument("--e2f", dest="e2f", action="store_true",
                         help="Used with spectrum. Converts the molecular "
                         "extinctions coefficients on the ordinate to "
@@ -221,7 +223,9 @@ def read_spectrum(args, fn):
         exc_state.suppress_low_ci_coeffs(args.ci_coeff)
         exc_state.update_irreps()
 
-    return Spectrum(excited_states, gs_energy=gs_energy)
+    name = os.path.splitext(fn)[0]
+
+    return Spectrum(name, excited_states, gs_energy=gs_energy)
 
 
 def boltzmann_averaging(spectra, temperature=293.15):
@@ -334,7 +338,7 @@ def run():
     if args.enoffset:
         enoffset_eV = HARTREE2EV * args.enoffset
         logging.warning(f"Adding an energy offset of {args.enoffset:.4f} a.u. "
-                         "({enoffset_eV:.2f} eV)!")
+                        f"({enoffset_eV:.2f} eV)!")
         for exc_state in excited_states:
             exc_state.dE += enoffset_eV
             exc_state.l = EV2NM / exc_state.dE
@@ -465,6 +469,8 @@ def run():
             np.savetxt(out_fn, spec)
         gnuplot_tpl = os.path.join(THIS_DIR, "templates", "gnuplot.plt")
         shutil.copy(gnuplot_tpl, "gnuplot.plt")
+    if args.savenm:
+        spectrum.write_nm()
 
     # Dont print the pretty table when raw output is requested
     # Don't print anything after the summary

@@ -9,7 +9,8 @@ NM2EV = 1240.6691
 
 class Spectrum:
 
-    def __init__(self, excited_states, gs_energy=None):
+    def __init__(self, name, excited_states, gs_energy=None):
+        self.name = name
         self.excited_states = excited_states
 
         wavelengths = [es.l for es in self.es]
@@ -142,6 +143,12 @@ class Spectrum:
         conv_spectrum_ys = conv_spectrum[:,1]
         max_peaks, min_peaks = peakdetect(conv_spectrum_ys, lookahead=50)
         return np.array(max_peaks)[:,0].astype(int)
+
+
+    def write_nm(self):
+        in_nm, _ = self.nm
+        nm_name = f"{self.name}_nm.dat"
+        np.savetxt(nm_name, in_nm)
 
 
     def __str__(self):
