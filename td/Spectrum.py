@@ -14,8 +14,8 @@ class Spectrum:
         self.excited_states = excited_states
 
         wavelengths = [es.l for es in self.es]
-        self.nm_range = np.array((min(wavelengths)-25,
-                                  max(wavelengths)+100))
+        self.nm_range = np.array((int(min(wavelengths))-25,
+                                  int(max(wavelengths))+100))
         """
         NM2EV = 1240.6691
         self.eV_range = NM2EV / self.nm_range

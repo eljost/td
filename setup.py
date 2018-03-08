@@ -12,7 +12,7 @@ package_data = {
 
 setup(
     name="td",
-    version="0.1",
+    version="0.2",
     description="Parser for excited state calculations",
     url="https://github.com/eljost/td",
     maintainer="Johannes Steinmetzer",
@@ -34,6 +34,7 @@ setup(
     entry_points={
         "console_scripts": [
             "td = td.main:run",
+            "tdmix = td.mix_spectra:run",
         ]
     },
 )
