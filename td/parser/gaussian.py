@@ -33,9 +33,22 @@ def parse_tddft(text):
             match_obj = re.match(TRS_LINE, line)
             if match_obj:
                 group_list = list(match_obj.groups())
-                conv_mo_excitation = conv(group_list, "sssf")
+                start_mo, to_or_from, final_mo, ci_coeff = conv(group_list,
+                                                                "sssf")
+                def handle_mo_item(mo_item):
+                    _, mo_num, spin = re.split("(\d+)", mo_item)
+                    if not spin:
+                        spin = "a"
+                    return mo_num, spin
+                start_mo = start_mo.lower()
+                final_mo = final_mo.lower()
+                start_mo_num, start_spin = handle_mo_item(start_mo)
+                final_mo_num, final_spin = handle_mo_item(start_mo)
                 last_exc_state = excited_states[-1]
-                last_exc_state.add_mo_transition(*conv_mo_excitation)
+                last_exc_state.add_mo_transition(start_mo_num, to_or_from,
+                                                 final_mo_num, ci_coeff,
+                                                 start_spin=start_spin,
+                                                 final_spin=final_spin)
             # stop this matching if a blank line is encountered
             if line.strip() == "":
                 matched_exc_state = False
