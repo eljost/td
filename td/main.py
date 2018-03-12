@@ -35,6 +35,11 @@ def is_orca(text):
     return re.search(orca_re, text)
 
 
+def is_turbomole_escf(text):
+    escf_re = "e s c f"
+    return re.search(escf_re, text)
+
+
 def set_ntos(excited_states, ntos):
     for es, (state, nto_contribs) in zip(excited_states, ntos):
         assert(es.id == state)
@@ -77,7 +82,7 @@ def determine_program(fn, orca_ntos):
 
 def get_parser(fn, text):
     # TURBOMOLE escf
-    if fn.endswith("escf.out"):
+    if is_turbomole_escf(text):
         return turbo.parse_escf
     # TURBOMOLE ricc2
     elif fn.endswith("ricc2.out"):
