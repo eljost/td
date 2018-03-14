@@ -116,7 +116,7 @@ class Spectrum:
             peaks = conv_spectrum[peak_inds]
             for i, peak in enumerate(peaks):
                 energy, epsilon = peak[:2]
-                print("{:2d}:\tλ={:5.1f} {}, ε={:6f}".format(i, energy,
+                print("{:2d}:\tλ={:5.0f} {}, ε={:8.0f}".format(i, energy,
                                                              unit, epsilon))
                 xytext = peak[:2] * (1, 1.05)
                 ax1.annotate("{}".format(i), xy=peak[:2], xytext=xytext,
@@ -139,9 +139,9 @@ class Spectrum:
 
         plt.show()
 
-    def get_peak_inds(self, conv_spectrum):
+    def get_peak_inds(self, conv_spectrum, lookahead=25):
         conv_spectrum_ys = conv_spectrum[:,1]
-        max_peaks, min_peaks = peakdetect(conv_spectrum_ys, lookahead=50)
+        max_peaks, min_peaks = peakdetect(conv_spectrum_ys, lookahead=lookahead)
         return np.array(max_peaks)[:,0].astype(int)
 
 

@@ -14,6 +14,7 @@ import sys
 
 import numpy as np
 import simplejson as json
+import yaml
 
 from td.helper_funcs import chunks, THIS_DIR, EV2NM, HARTREE2EV
 from td.ExcitedState import ExcitedState
@@ -38,6 +39,23 @@ def is_orca(text):
 def is_turbomole_escf(text):
     escf_re = "e s c f"
     return re.search(escf_re, text)
+
+
+def load_nto_yaml():
+    yaml_fn = "ntos.yaml"
+    with open(yaml_fn) as handle:
+        as_dict = yaml.load(handle.read())
+    ntos = list()
+    for state, values in as_dict.items():
+        nto_contribs = list()
+        for pair in values["pairs"]:
+            from_nto, to_nto, nto_weight = pair
+            from_spin, to_spin = "a", "a"
+            nto_contribs.append((from_nto, from_spin,
+                                 to_nto, to_spin,
+                                 nto_weight))
+        ntos.append((state, nto_contribs))
+    return ntos
 
 
 def set_ntos(excited_states, ntos):
@@ -182,8 +200,9 @@ def parse_args(args):
                         help="Plot the spectrum with matplotlib.")
     parser.add_argument("--peaks", action="store_true", default=False,
                         help="Detect peaks.")
-    parser.add_argument("--ntos", action="store_true", default=False,
-                        help="Parse NTOs from an ORCA log.")
+    parser.add_argument("--ntos", action="store_true",
+                        help="Use NTOs. Read directyl from an ORCA log or "
+                             "for the other programs from a 'ntos.yaml' file.")
     parser.add_argument("--enoffset", type=float, default=None,
                         help="Add an energy offset in a.u. that gets added to "
                         "all excitation energies, e.g. a singlet-triplet "
@@ -212,7 +231,11 @@ def read_spectrum(args, fn):
     parser = get_parser(fn, text)
     excited_states = parser(text)
     if args.ntos:
-        ntos = orca.parse_ntos(text)
+        print("ntos", args.ntos)
+        if is_orca(text):
+            ntos = orca.parse_ntos(text)
+        else:
+            ntos = load_nto_yaml()
         excited_states = set_ntos(excited_states, ntos)
     gs_energy = None
     if args.boltzmann:
