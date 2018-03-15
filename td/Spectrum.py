@@ -32,7 +32,7 @@ class Spectrum:
 
     @property
     def nm(self):
-        return self.convolute(*self.nm_range)
+        return self.broaden(*self.nm_range)
 
     @property
     def eV(self):
@@ -43,7 +43,7 @@ class Spectrum:
         osc_in_eV[:,0] = NM2EV / osc_in_eV[:,0]
         return in_eV, osc_in_eV
 
-    def convolute(self, from_nm, to_nm):
+    def broaden(self, from_nm, to_nm):
         # According to:
         # http://www.gaussian.com/g_whitepap/tn_uvvisplot.htm
         # wave lengths and oscillator strengths
@@ -92,6 +92,7 @@ class Spectrum:
         print tabulate(wargel, headers=headers, tablefmt="plain")
         """
 
+    """
     def plot_eV(self, title="", with_peaks=False):
         in_eV, osc_eV = self.eV
         unit = "eV"
@@ -138,6 +139,7 @@ class Spectrum:
         ax2.set_ylabel("f")
 
         plt.show()
+    """
 
     def get_peak_inds(self, conv_spectrum, lookahead=25):
         conv_spectrum_ys = conv_spectrum[:,1]

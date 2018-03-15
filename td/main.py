@@ -23,6 +23,7 @@ import td.parser.gaussian as gaussian
 import td.parser.orca as orca
 import td.parser.turbomole as turbo
 from td.Spectrum import Spectrum
+from td.SpectraPlotter import SpectraPlotter
 
 # Optional modules
 try:
@@ -188,6 +189,8 @@ def parse_args(args):
                         help="Export excited state data as .csv.")
     parser.add_argument("--boltzmann", nargs="+",
                         help="Create a boltzmann averaged spectrum")
+    parser.add_argument("--plotalso", nargs="+",
+                        help="Also plot these spectra.")
 
     # Use the argcomplete module for autocompletion if it's available
     if "argcomplete" in sys.modules:
@@ -300,21 +303,10 @@ def run():
     fn_root = os.path.splitext(fn)[0]
     spectrum = read_spectrum(args, fn)
     excited_states = spectrum.excited_states
-    """
-    excited_states = determine_program(fn, args.ntos)
 
-    logging.warning("Only the contribution in % gets corrected, "
-                    "for back-excitations, not the CI-coefficient."
-    )
-    
-    for exc_state in excited_states:
-        exc_state.calculate_contributions()
-        exc_state.correct_backexcitations()
-        exc_state.suppress_low_ci_coeffs(args.ci_coeff)
-        exc_state.update_irreps()
-
-    spectrum = Spectrum(excited_states)
-    """
+    also_spectra = list()
+    if args.plotalso:
+        also_spectra = [read_spectrum(args, fn) for fn in args.plotalso]
 
     if args.nosym:
         for es in excited_states:
@@ -324,10 +316,18 @@ def run():
     if args.only_first:
         excited_states = excited_states[:args.only_first]
 
+    """
     if args.plot == "eV":
         spectrum.plot_eV(title=args.file_name, with_peaks=args.peaks)
     elif args.plot == "nm":
         spectrum.plot_nm(title=args.file_name, with_peaks=args.peaks)
+    """
+    if args.plot:
+        spectra = [spectrum, ]
+        spectra.extend(also_spectra)
+        plotter = SpectraPlotter(spectra, unit=args.plot, peaks=args.peaks)
+        plotter.plot()
+        sys.exit()
 
     if args.by_id:
         try:
