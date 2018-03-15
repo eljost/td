@@ -73,31 +73,6 @@ def set_ntos(excited_states, ntos):
     return excited_states
 
 
-"""
-def determine_program(fn, orca_ntos):
-    with open(fn) as handle:
-        text = handle.read()
-
-    # Parse outputs
-    if fn.endswith("escf.out"):
-        # TURBOMOLE escf
-        excited_states = turbo.parse_escf(text)
-    elif fn.endswith("ricc2.out"):
-        # TURBOMOLE ricc2
-        excited_states = turbo.parse_ricc2(text)
-    elif is_orca(text):
-        excited_states = orca.parse_tddft(text)
-        if orca_ntos:
-            ntos = orca.parse_ntos(text)
-            excited_states = set_ntos(excited_states, ntos)
-    else:
-        # Gaussian
-        excited_states = gaussian.parse_tddft(text)
-
-    return excited_states
-"""
-
-
 def get_parser(fn, text):
     # TURBOMOLE escf
     if is_turbomole_escf(text):
