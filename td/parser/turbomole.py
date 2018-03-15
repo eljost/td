@@ -3,7 +3,7 @@
 
 import re
 
-from td.helper_funcs import EV2NM, HARTREE2EV, HARTREE2NM
+from td.constants import EV2NM, HARTREE2EV, HARTREE2NM
 from td.ExcitedState import ExcitedState
 
 

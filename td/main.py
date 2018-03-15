@@ -16,7 +16,8 @@ import numpy as np
 import simplejson as json
 import yaml
 
-from td.helper_funcs import chunks, THIS_DIR, EV2NM, HARTREE2EV
+from td.constants import kB, EV2NM, HARTREE2EV
+from td.helper_funcs import chunks, THIS_DIR
 from td.ExcitedState import ExcitedState
 from td.export import *
 import td.parser.gaussian as gaussian
@@ -172,10 +173,6 @@ def parse_args(args):
                         help="Output HTML with NTO-picture from THEOdore.")
     parser.add_argument("--nosym", action="store_true",
                         help="Assign all excited states to the 'a' irrep.")
-    parser.add_argument("--plot", choices=["eV", "nm"],
-                        help="Plot the spectrum with matplotlib.")
-    parser.add_argument("--peaks", action="store_true", default=False,
-                        help="Detect peaks.")
     parser.add_argument("--ntos", action="store_true",
                         help="Use NTOs. Read directyl from an ORCA log or "
                              "for the other programs from a 'ntos.yaml' file.")
@@ -189,8 +186,14 @@ def parse_args(args):
                         help="Export excited state data as .csv.")
     parser.add_argument("--boltzmann", nargs="+",
                         help="Create a boltzmann averaged spectrum")
+    # Plotting related arguments
+    parser.add_argument("--plot", choices=["eV", "nm"],
+                        help="Plot the spectrum with matplotlib.")
+    parser.add_argument("--peaks", action="store_true", default=False,
+                        help="Detect peaks.")
     parser.add_argument("--plotalso", nargs="+",
                         help="Also plot these spectra.")
+    parser.add_argument("--fmax", type=float)
 
     # Use the argcomplete module for autocompletion if it's available
     if "argcomplete" in sys.modules:
@@ -249,8 +252,7 @@ def boltzmann_averaging(spectra, temperature=293.15):
 
     # kT
     # k = 1.38064852 × 10-23 J/K
-    k = 1.38064852e-23
-    kT = k*temperature
+    kT = kB*temperature
     # Determine weights
     weights = np.exp(-gs_energies_joule / kT)
     weights /= sum(weights)

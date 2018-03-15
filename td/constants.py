@@ -1,0 +1,9 @@
+# 1 eV = 1240 nm
+# 2 eV =  620 nm
+# ...
+NM2EV = 1240.6691
+# Boltzman constant in J/K
+kB = 1.38064852e-23
+HARTREE2EV = 27.211386
+HARTREE2NM = 45.56335
+EV2NM = 1.2406691e3

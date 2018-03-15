@@ -3,7 +3,8 @@
 
 import re
 
-from td.helper_funcs import EV2NM, FLOAT_RE
+from td.constants import EV2NM
+from td.helper_funcs import FLOAT_RE
 from td.ExcitedState import ExcitedState
 
 
