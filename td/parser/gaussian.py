@@ -43,7 +43,7 @@ def parse_tddft(text):
                 start_mo = start_mo.lower()
                 final_mo = final_mo.lower()
                 start_mo_num, start_spin = handle_mo_item(start_mo)
-                final_mo_num, final_spin = handle_mo_item(start_mo)
+                final_mo_num, final_spin = handle_mo_item(final_mo)
                 last_exc_state = excited_states[-1]
                 last_exc_state.add_mo_transition(start_mo_num, to_or_from,
                                                  final_mo_num, ci_coeff,

@@ -31,6 +31,9 @@ class MOTransition:
     def __str__(self):
         return self.outstr()
 
+    def __repr__(self):
+        return self.outstr()
+
     def start_tpl(self):
         return (self.start_mo, self.start_irrep)
 

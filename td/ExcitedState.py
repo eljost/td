@@ -68,7 +68,6 @@ class ExcitedState:
         return self.mult == 1
 
     def calculate_contributions(self):
-        #import pdb; pdb.set_trace()
         for mo_trans in self.mo_transitions:
             if (mo_trans.contrib is not None and
                 not math.isclose(mo_trans.contrib, 0.0)):
