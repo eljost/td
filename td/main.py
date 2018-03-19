@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Johannes Steinmetzer, 2017
+# Johannes Steinmetzer, 2018
 # PYTHON_ARGCOMPLETE_OK
 
 import argparse
@@ -43,6 +43,11 @@ def is_turbomole_escf(text):
     return re.search(escf_re, text)
 
 
+def is_turbomole_ricc2(text):
+    escf_re = "R I C C 2 - PROGRAM"
+    return re.search(escf_re, text)
+
+
 def load_nto_yaml():
     yaml_fn = "ntos.yaml"
     with open(yaml_fn) as handle:
@@ -80,7 +85,7 @@ def get_parser(fn, text):
     if is_turbomole_escf(text):
         return turbo.parse_escf
     # TURBOMOLE ricc2
-    elif fn.endswith("ricc2.out"):
+    elif is_turbomole_ricc2(text):
         return turbo.parse_ricc2
     # ORCA TDDFT
     elif is_orca(text):

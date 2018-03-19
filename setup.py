@@ -12,7 +12,7 @@ package_data = {
 
 setup(
     name="td",
-    version="0.2",
+    version="0.2.1",
     description="Parser for excited state calculations",
     url="https://github.com/eljost/td",
     maintainer="Johannes Steinmetzer",
