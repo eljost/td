@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import logging
 import re
+
+import pyparsing as pp
 
 from td.constants import EV2NM, HARTREE2EV, HARTREE2NM
 from td.ExcitedState import ExcitedState
@@ -68,7 +71,61 @@ def parse_ricc2(text):
                                         start_irrep=start_irrep,
                                         final_irrep=final_irrep)
 
+    if "SUMMARY OF RELAXED EXCITATIONS WITH COSMO" in text:
+        logging.warning("Using COSMO energies!")
+        lines = cosmo_ricc2 = parse_cosmo_ricc2(text)
+
+        # Using E(exc(OCC)) / eV to update the energies,
+        # skipping the GS (first line)
+        for i, (line, exc) in enumerate(zip(lines[1:], excited_states), 1):
+            dE = line[6]
+            l = EV2NM / dE
+            print(f"State {i} shifted by {dE - exc.dE:+.2f} eV")
+            exc.dE = dE
+            exc.l = l
+
+        # Print corrections
+        # corr_re = "\| Correction(.+)"
+        # corrs = [float(c.split("|")[-2]) for c in re.findall(corr_re, text)]
+        # for i, _ in enumerate(excited_states):
+
+
     return excited_states
+
+
+def parse_cosmo_ricc2(text):
+    def to_float(s, loc, toks):
+        try:
+            return float(toks[0])
+        except ValueError:
+            return 0.
+
+    float_ = pp.Word(pp.nums + ".-").setParseAction(to_float)
+    int_ = pp.Word(pp.nums).setParseAction(lambda t: int(t[0]))
+    big_sep = pp.Suppress(pp.Word("+="))
+    small_sep = pp.Suppress(pp.Word("+-"))
+    bar = pp.Suppress(pp.Literal("|"))
+    sym = pp.Word(pp.alphanums + "'" + '"' + "*")
+    multi = int_
+    state = int_
+    E_tot = float_
+    E_diff = float_
+    E_exci = float_
+    E_exc= float_
+    line = pp.Group(
+        bar + sym + bar + multi + bar + state + bar +
+        E_tot + bar + E_diff + bar + E_exci + bar + E_exc + bar
+    )
+
+    parser = (
+        pp.Suppress(pp.SkipTo("E(exc(OCC))/eV|", include=True))
+        + big_sep
+        + pp.OneOrMore(line + small_sep)
+    )
+
+
+    res = parser.parseString(text)
+    return res
 
 
 def parse_escf(text):

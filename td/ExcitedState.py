@@ -13,8 +13,8 @@ class ExcitedState:
         self.id_sorted = self.id
         self.spin = spin
         self.spat = spat
-        self.dE = dE
-        self.l = l
+        self.dE = dE  # in eV
+        self.l = l  # in nm
         self.f = f
         self.s2 = s2
         self.rr_weight = None

@@ -30,6 +30,7 @@ setup(
         "python-docx",
         "scipy",
         "simplejson",
+        "pyparsing",
     ],
     entry_points={
         "console_scripts": [
