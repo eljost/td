@@ -196,6 +196,8 @@ def parse_args(args):
                         help="Plot the spectrum with matplotlib.")
     parser.add_argument("--peaks", action="store_true", default=False,
                         help="Detect peaks.")
+    parser.add_argument("--enum", action="store_true",
+                        help="Enumerate states when plotted.")
     parser.add_argument("--plotalso", nargs="+",
                         help="Also plot these spectra.")
     parser.add_argument("--fmax", type=float)
@@ -332,7 +334,8 @@ def run():
     if args.plot:
         spectra = [spectrum, ]
         spectra.extend(also_spectra)
-        plotter = SpectraPlotter(spectra, unit=args.plot, peaks=args.peaks)
+        plotter = SpectraPlotter(spectra, unit=args.plot, peaks=args.peaks,
+                                 enum=args.enum)
         plotter.plot()
         sys.exit()
 
