@@ -20,6 +20,11 @@ Display the help message with all available commands:
 
 Common usage examples are the generation of broadened spectra from calculated excitation energies and oscillator strenghts according to http://dev.gaussian.com/uvvisplot/ and this paper https://dx.doi.org/10.1002/chir.20733. Spectra can be generated in two ways: Not normalized (ε in l mol⁻¹ cm⁻¹) or normalized with the brightest  peak set to 1 (ε/ε_max). The spectrum is printed to STDOUT.
 
+### Easy plotting of UV absorption spectra
+
+    td.py [log] --plot [nm or ev] [--peaks] [--plotalso [additional logs to plot]]
+
+
 ### Verbose MO names 
 Verbose MO names can optionally be loaded from a *mos.json* file with the following format:
 
