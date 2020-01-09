@@ -62,6 +62,8 @@ class SpectraPlotter:
         if self.unit == "eV":
             from_x, to_x = self.ax.get_xlim()
             self.ax.set_xlim(to_x, from_x)
+        elif self.unit == "nm":
+            self.ax.set_xlim(self.spectra[0].nm_range)
 
         self.ax.set_xlabel(xlabel)
         self.ax.set_ylabel("ε / mol cm⁻¹ l⁻¹")

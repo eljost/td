@@ -6,7 +6,7 @@ set output "nm.pdf"
 unset key
 
 abs_ylabel = "{/Symbol e} l mol⁻¹ cm⁻¹"
-abs_norm_ylabel = "{/Symbol e} / {/Symbol e}'"
+abs_norm_ylabel = "{/Symbol e} / {/Symbol e}_{max}"
 
 set ytics nomirror
 set y2tics

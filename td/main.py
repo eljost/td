@@ -151,7 +151,7 @@ def parse_args(args):
                         "oscillator strength bars will be printed separatly.")
     """
     parser.add_argument("--norm", type=int,
-                        help="Normalize the calculated spectrum.")
+                        help="Normalize the calculated spectrum to the given peak.")
     parser.add_argument("--irrep", dest="irrep",
                         help="Filter for specific irrep.")
     parser.add_argument("--booktabs", dest="booktabs", action="store_true",
@@ -201,6 +201,8 @@ def parse_args(args):
     parser.add_argument("--plotalso", nargs="+",
                         help="Also plot these spectra.")
     parser.add_argument("--fmax", type=float)
+    parser.add_argument("--nmrange", type=int, nargs=2, default=None,
+        help="Plot-range in nm.")
 
     # Use the argcomplete module for autocompletion if it's available
     if "argcomplete" in sys.modules:
@@ -241,7 +243,7 @@ def read_spectrum(args, fn):
 
     name = os.path.splitext(fn)[0]
 
-    return Spectrum(name, excited_states, gs_energy=gs_energy)
+    return Spectrum(name, excited_states, gs_energy=gs_energy, nm_range=args.nmrange)
 
 
 def boltzmann_averaging(spectra, temperature=293.15):
